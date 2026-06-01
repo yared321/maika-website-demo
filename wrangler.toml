@@ -1,0 +1,4 @@
+# Cloudflare Pages — publish directory for Git / wrangler deploy
+name = "maika-website-demo"
+compatibility_date = "2025-05-01"
+pages_build_output_dir = "site"

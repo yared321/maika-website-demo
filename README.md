@@ -13,7 +13,19 @@ Open **http://localhost:3040/** — the dev server proxies `/api/face-assess/*` 
 
 ## Deploy
 
-Static output is in `site/`. Publish that folder (e.g. Netlify: output `site`, no build command). For production face-scan uploads you still need a reverse proxy to `MAIKA_RPPG_UPSTREAM` (see `scripts/README.proxy.md`).
+Static output is in `site/` (`index.html` at the root of that folder).
+
+**Cloudflare Pages** (Dashboard → your project → Settings → Builds):
+
+| Setting | Value |
+|---------|--------|
+| Build command | *(leave empty)* |
+| Build output directory | `site` |
+| Root directory | `/` (repo root) |
+
+Do not rewrite `/` to `/demo/index.html` — the app lives at `site/index.html`. After changing `_redirects`, redeploy.
+
+For production face-scan uploads you still need a reverse proxy to `MAIKA_RPPG_UPSTREAM` (see `scripts/README.proxy.md`).
 
 ## Structure
 

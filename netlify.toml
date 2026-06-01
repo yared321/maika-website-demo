@@ -5,12 +5,6 @@
   publish = "site"
 
 [[redirects]]
-  from = "/"
-  to = "/demo/index.html"
-  status = 200
-  force = true
-
-[[redirects]]
   from = "/demo"
   to = "/"
   status = 301

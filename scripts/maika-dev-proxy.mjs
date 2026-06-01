@@ -137,10 +137,8 @@ function proxyAssess(req, res) {
 
 function safeResolveFile(urlPathname) {
   let rel = urlPathname;
-  if (rel === '/' || rel === '') {
-    rel = 'demo/index.html';
-  } else if (rel === '/demo' || rel === '/demo/') {
-    rel = 'demo/index.html';
+  if (rel === '/' || rel === '' || rel === '/demo' || rel === '/demo/') {
+    rel = 'index.html';
   } else {
     rel = rel.replace(/^\//, '');
   }
