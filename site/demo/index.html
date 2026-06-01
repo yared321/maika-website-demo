@@ -39,8 +39,6 @@
       name="twitter:image"
       content="/assets/images/HMAXl2OBQIIUUaPBbnSBuo5EQYE.png"
     />
-    <meta name="demo-verify-url" content="" />
-    <meta name="turnstile-site-key" content="__TURNSTILE_SITE_KEY__" />
     <meta name="maika-face-detector-provider" content="mediapipe" />
     <meta name="maika-mediapipe-model-type" content="landmarker" />
     <meta
@@ -201,24 +199,8 @@
               <div class="demo-access-card">
                 <p class="demo-access-card__title">Try the demo</p>
                 <p class="demo-access-card__copy">
-                  Enter your demo access code to continue to the guided flow.
+                  Start the guided flow — face scan, music, and your personalized results.
                 </p>
-                <label class="demo-access-card__label" for="demo-access-code">
-                  Access code
-                </label>
-                <input
-                  id="demo-access-code"
-                  class="demo-access-card__input"
-                  type="password"
-                  autocomplete="off"
-                  placeholder="Enter demo code"
-                />
-                <div class="cf-turnstile" data-sitekey=""></div>
-                <p
-                  class="demo-access-card__error hidden"
-                  id="demo-access-error"
-                  aria-live="polite"
-                ></p>
                 <button
                   class="btn btn-primary demo-access-card__btn"
                   id="demo-access-cta"
@@ -1006,11 +988,6 @@
     </div>
     <script src="/app.js" defer></script>
     <script src="/demo/js/demo_embed.js" defer></script>
-    <script src="/demo/js/demo_turnstile_boot.js"></script>
-    <script
-      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-      defer
-    ></script>
     <script src="/demo/js/demo.js" defer type="module"></script>
   </body>
 </html>

@@ -1,0 +1,15 @@
+# Demo at / (and legacy /demo/*) — allow iframe embed; camera for face scan.
+/
+  Content-Security-Policy: frame-ancestors *;
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/demo
+  Content-Security-Policy: frame-ancestors *;
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/demo/*
+  Content-Security-Policy: frame-ancestors *;
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+  Referrer-Policy: strict-origin-when-cross-origin

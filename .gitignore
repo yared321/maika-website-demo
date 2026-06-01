@@ -1,10 +1,7 @@
 # Keep repo focused on deployable site
 .env
 .env.*
-# Wrangler Pages local secrets
-.dev.vars
-# Wrangler local cache / dev artifacts (safe to ignore; recreated by CLI)
-.wrangler/
+!.env.example
 *.zip
 video-frames/
 video-frames-intro/

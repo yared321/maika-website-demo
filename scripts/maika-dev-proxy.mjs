@@ -5,31 +5,16 @@
  *   node scripts/maika-dev-proxy.mjs
  *   open http://localhost:3040/
  *
- * Proxies: /api/face-assess/*  →  MAIKA_RPPG_UPSTREAM (default: staging Cloud Run origin, path preserved after prefix).
+ * Proxies: /api/face-assess/*  →  MAIKA_RPPG_UPSTREAM (default: staging Cloud Run origin).
  * Serves:  ./site  (override with SITE_ROOT).
  *
- * Env: PORT (default 3000), SITE_ROOT, MAIKA_RPPG_UPSTREAM (e.g. https://xxx.run.app, no trailing slash).
- * Demo verify env:
- *   DEMO_ACCESS_CODES, TURNSTILE_SECRET_KEY, DEMO_BYPASS_VERIFY (optional local bypass)
- *   + optional dynamic codes: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
- *   (+ optional defaults DYNAMIC_ACCESS_CODE_MAX_USES, DYNAMIC_ACCESS_CODE_TTL_SECONDS)
+ * Env: PORT, SITE_ROOT, MAIKA_RPPG_UPSTREAM, MAIKA_PUBLIC_KEY, MAIKA_CAPTCHA_TOKEN
  */
 import http from 'node:http';
 import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  createDynamicAccessCode,
-  createDynamicAccessCodesBatch,
-  consumeDynamicAccessCode,
-  isDynamicCodeStoreConfigured,
-  revokeDynamicAccessCode,
-} from '../functions/_lib/dynamic_access_codes.js';
-
-const MAX_CODES_PER_REQUEST = 100;
-/** Cloudflare/Pages-style env bindings for shared dynamic-code helpers. */
-const devEnv = process.env;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, '..');
@@ -43,11 +28,7 @@ const UPSTREAM = (process.env.MAIKA_RPPG_UPSTREAM || 'https://maika-rppg-web-sta
 );
 const PUBLIC_KEY = String(process.env.MAIKA_PUBLIC_KEY || '').trim();
 const CAPTCHA_TOKEN = String(process.env.MAIKA_CAPTCHA_TOKEN || '').trim();
-const TURNSTILE_SITE_KEY = String(process.env.TURNSTILE_SITE_KEY || '').trim();
 const PROXY_PREFIX = '/api/face-assess';
-const DEMO_VERIFY_PATH = '/api/demo-verify';
-const DEMO_CODE_CREATE_PATH = '/api/demo-code-create';
-const DEMO_CODE_REVOKE_PATH = '/api/demo-code-revoke';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -118,7 +99,6 @@ function proxyAssess(req, res) {
 
   const headers = stripHopByHop(req.headers);
   headers.host = upstreamUrl.host;
-  // Dev-only cookies (e.g. Next.js __next_hmr_refresh_hash__) must not be forwarded to Cloud Run.
   delete headers.cookie;
   delete headers.Cookie;
   delete headers['x-maika-public-key'];
@@ -153,310 +133,6 @@ function proxyAssess(req, res) {
   });
 
   req.pipe(preq);
-}
-
-function parseAccessCodes(raw) {
-  return String(raw || '')
-    .split(',')
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean);
-}
-
-async function verifyTurnstile(secret, token, remoteip) {
-  const body = new URLSearchParams();
-  body.set('secret', secret);
-  body.set('response', token || '');
-  if (remoteip) body.set('remoteip', remoteip);
-  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-  return res.json();
-}
-
-function writeJson(res, req, status, payload) {
-  res.writeHead(status, {
-    ...corsHeaders(req),
-    'Content-Type': 'application/json; charset=utf-8',
-  });
-  res.end(JSON.stringify(payload));
-}
-
-async function handleDemoVerify(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, corsHeaders(req));
-    res.end();
-    return;
-  }
-  if (req.method !== 'POST') {
-    writeJson(res, req, 405, { ok: false, error: 'Method not allowed' });
-    return;
-  }
-
-  let raw = '';
-  for await (const chunk of req) raw += chunk;
-  let body = {};
-  try {
-    body = JSON.parse(raw || '{}');
-  } catch {
-    writeJson(res, req, 400, { ok: false, error: 'Invalid JSON' });
-    return;
-  }
-
-  const accessCode = String(body.accessCode || '').trim();
-  const token = String(body.turnstileToken || '').trim();
-  const bypass = String(process.env.DEMO_BYPASS_VERIFY || '').toLowerCase() === 'true';
-  const secret = String(process.env.TURNSTILE_SECRET_KEY || '').trim();
-  const allowed = parseAccessCodes(process.env.DEMO_ACCESS_CODES || '');
-  const dynamicEnabled = isDynamicCodeStoreConfigured(devEnv);
-
-  if (!allowed.length && !dynamicEnabled) {
-    writeJson(res, req, 503, {
-      ok: false,
-      error: 'Demo access is not configured (set DEMO_ACCESS_CODES or Redis env for dynamic codes).',
-    });
-    return;
-  }
-  if (!accessCode) {
-    writeJson(res, req, 400, { ok: false, error: 'Missing access code.' });
-    return;
-  }
-  const normalized = accessCode.toUpperCase();
-  const isStaticCode = allowed.includes(normalized);
-  const isDynamicCandidate = !isStaticCode && dynamicEnabled;
-  if (!isStaticCode && !isDynamicCandidate) {
-    writeJson(res, req, 403, { ok: false, error: 'Invalid access code.' });
-    return;
-  }
-
-  if (!bypass) {
-    if (!secret) {
-      writeJson(res, req, 503, { ok: false, error: 'Turnstile is not configured (TURNSTILE_SECRET_KEY).' });
-      return;
-    }
-    if (!token) {
-      writeJson(res, req, 403, { ok: false, error: 'Complete the security check and try again.' });
-      return;
-    }
-    const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0]?.trim();
-    const outcome = await verifyTurnstile(secret, token, ip);
-    if (!outcome.success) {
-      writeJson(res, req, 403, { ok: false, error: 'Security verification failed. Refresh and try again.' });
-      return;
-    }
-  }
-
-  if (isDynamicCandidate) {
-    const consumed = await consumeDynamicAccessCode(devEnv, normalized);
-    if (!consumed.ok) {
-      if (consumed.reason === 'store_error') {
-        writeJson(res, req, 503, { ok: false, error: 'Access code service unavailable. Please try again.' });
-        return;
-      }
-      const message =
-        consumed.reason === 'exhausted'
-          ? 'This access code has reached its usage limit.'
-          : 'Invalid or expired access code.';
-      writeJson(res, req, 403, { ok: false, error: message });
-      return;
-    }
-    writeJson(res, req, 200, { ok: true, codeType: 'dynamic', usesRemaining: consumed.remainingUses });
-    return;
-  }
-
-  writeJson(res, req, 200, { ok: true, codeType: 'static' });
-}
-
-function getHeader(headers, name) {
-  const want = String(name || '').toLowerCase();
-  if (!headers) return '';
-  for (const k of Object.keys(headers)) {
-    if (k.toLowerCase() === want) return headers[k];
-  }
-  return '';
-}
-
-async function parseJsonBody(req, res) {
-  let raw = '';
-  for await (const chunk of req) raw += chunk;
-  try {
-    return { ok: true, body: JSON.parse(raw || '{}') };
-  } catch {
-    writeJson(res, req, 400, { ok: false, error: 'Invalid JSON' });
-    return { ok: false, body: {} };
-  }
-}
-
-async function handleDemoCodeCreate(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, corsHeaders(req));
-    res.end();
-    return;
-  }
-  if (req.method !== 'POST') {
-    writeJson(res, req, 405, { ok: false, error: 'Method not allowed' });
-    return;
-  }
-
-  const adminSecret = String(process.env.DEMO_CODE_ADMIN_SECRET || '').trim();
-  const provided = String(getHeader(req.headers, 'x-admin-key') || '').trim();
-  if (!adminSecret) {
-    writeJson(res, req, 503, { ok: false, error: 'Admin code API is not configured.' });
-    return;
-  }
-  if (!provided || provided !== adminSecret) {
-    writeJson(res, req, 403, { ok: false, error: 'Forbidden' });
-    return;
-  }
-  if (!isDynamicCodeStoreConfigured(devEnv)) {
-    writeJson(res, req, 503, {
-      ok: false,
-      error: 'Dynamic code store is not configured (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN).',
-    });
-    return;
-  }
-
-  const parsed = await parseJsonBody(req, res);
-  if (!parsed.ok) return;
-  const body = parsed.body;
-
-  const rawNumber = body.number;
-  let batchCount = 1;
-  if (rawNumber != null && rawNumber !== '') {
-    const n = Number(rawNumber);
-    if (!Number.isFinite(n) || n <= 0 || Math.floor(n) !== n) {
-      writeJson(res, req, 400, { ok: false, error: 'number must be a positive integer.' });
-      return;
-    }
-    batchCount = Math.min(n, MAX_CODES_PER_REQUEST);
-    if (n > MAX_CODES_PER_REQUEST) {
-      writeJson(res, req, 400, {
-        ok: false,
-        error: `number must be at most ${MAX_CODES_PER_REQUEST}.`,
-      });
-      return;
-    }
-  }
-
-  const explicitCode = body.code != null ? String(body.code) : '';
-  if (batchCount > 1 && explicitCode.trim() !== '') {
-    writeJson(res, req, 400, {
-      ok: false,
-      error: 'Cannot set code when creating multiple (number > 1); omit code for batch.',
-    });
-    return;
-  }
-
-  if (batchCount > 1) {
-    const batch = await createDynamicAccessCodesBatch(devEnv, {
-      count: batchCount,
-      maxUses: body.maxUses,
-      ttlSeconds: body.ttlSeconds,
-    });
-    if (!batch.ok) {
-      if (batch.reason === 'invalid_code_format') {
-        writeJson(res, req, 400, {
-          ok: false,
-          error: 'Invalid code format. Use 4-64 chars: uppercase letters, numbers, hyphen.',
-        });
-        return;
-      }
-      writeJson(res, req, 503, {
-        ok: false,
-        error: 'Could not create access codes right now.',
-        reason: batch.reason,
-        atIndex: batch.atIndex,
-      });
-      return;
-    }
-    const first = batch.codes[0];
-    writeJson(res, req, 200, {
-      ok: true,
-      maxUses: first?.remainingUses,
-      ttlSeconds: first?.ttlSeconds,
-      createdAt: batch.createdAt,
-      codes: batch.codes.map((row) => ({
-        code: row.code,
-        remainingUses: row.remainingUses,
-      })),
-    });
-    return;
-  }
-
-  const created = await createDynamicAccessCode(devEnv, {
-    code: explicitCode,
-    maxUses: body.maxUses,
-    ttlSeconds: body.ttlSeconds,
-  });
-  if (!created.ok) {
-    if (created.reason === 'already_exists') {
-      writeJson(res, req, 409, { ok: false, error: 'Access code already exists.' });
-      return;
-    }
-    if (created.reason === 'invalid_code_format') {
-      writeJson(res, req, 400, {
-        ok: false,
-        error: 'Invalid code format. Use 4-64 chars: uppercase letters, numbers, hyphen.',
-      });
-      return;
-    }
-    writeJson(res, req, 503, { ok: false, error: 'Could not create access code right now.' });
-    return;
-  }
-  writeJson(res, req, 200, {
-    ok: true,
-    maxUses: created.remainingUses,
-    ttlSeconds: created.ttlSeconds,
-    createdAt: created.createdAt,
-    codes: [{ code: created.code, remainingUses: created.remainingUses }],
-  });
-}
-
-async function handleDemoCodeRevoke(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, corsHeaders(req));
-    res.end();
-    return;
-  }
-  if (req.method !== 'POST') {
-    writeJson(res, req, 405, { ok: false, error: 'Method not allowed' });
-    return;
-  }
-
-  const adminSecret = String(process.env.DEMO_CODE_ADMIN_SECRET || '').trim();
-  const provided = String(getHeader(req.headers, 'x-admin-key') || '').trim();
-  if (!adminSecret) {
-    writeJson(res, req, 503, { ok: false, error: 'Admin code API is not configured.' });
-    return;
-  }
-  if (!provided || provided !== adminSecret) {
-    writeJson(res, req, 403, { ok: false, error: 'Forbidden' });
-    return;
-  }
-  if (!isDynamicCodeStoreConfigured(devEnv)) {
-    writeJson(res, req, 503, {
-      ok: false,
-      error: 'Dynamic code store is not configured (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN).',
-    });
-    return;
-  }
-
-  const parsed = await parseJsonBody(req, res);
-  if (!parsed.ok) return;
-  const revoked = await revokeDynamicAccessCode(
-    devEnv,
-    parsed.body.code != null ? String(parsed.body.code) : '',
-  );
-  if (!revoked.ok) {
-    if (revoked.reason === 'invalid_code_format') {
-      writeJson(res, req, 400, { ok: false, error: 'Invalid access code format.' });
-      return;
-    }
-    writeJson(res, req, 503, { ok: false, error: 'Could not revoke code.' });
-    return;
-  }
-  writeJson(res, req, 200, { ok: true, code: revoked.code, removed: revoked.removed });
 }
 
 function safeResolveFile(urlPathname) {
@@ -512,46 +188,14 @@ function serveStatic(req, res) {
       res.end('Read error');
       return;
     }
-    var out = buf;
-    if (ext === '.html') {
-      const html = out.toString('utf8');
-      out = Buffer.from(
-        html.replaceAll('__TURNSTILE_SITE_KEY__', TURNSTILE_SITE_KEY),
-        'utf8',
-      );
-    }
     res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' });
     if (req.method === 'HEAD') res.end();
-    else res.end(out);
+    else res.end(buf);
   });
 }
 
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, `http://127.0.0.1:${PORT}`);
-  if (u.pathname === DEMO_VERIFY_PATH) {
-    handleDemoVerify(req, res).catch((err) => {
-      if (!res.headersSent) {
-        writeJson(res, req, 500, { ok: false, error: String(err?.message || err) });
-      }
-    });
-    return;
-  }
-  if (u.pathname === DEMO_CODE_CREATE_PATH) {
-    handleDemoCodeCreate(req, res).catch((err) => {
-      if (!res.headersSent) {
-        writeJson(res, req, 500, { ok: false, error: String(err?.message || err) });
-      }
-    });
-    return;
-  }
-  if (u.pathname === DEMO_CODE_REVOKE_PATH) {
-    handleDemoCodeRevoke(req, res).catch((err) => {
-      if (!res.headersSent) {
-        writeJson(res, req, 500, { ok: false, error: String(err?.message || err) });
-      }
-    });
-    return;
-  }
   if (u.pathname === PROXY_PREFIX || u.pathname.startsWith(PROXY_PREFIX + '/')) {
     proxyAssess(req, res);
     return;
@@ -562,7 +206,7 @@ const server = http.createServer((req, res) => {
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {
     console.error(
-      `Port ${PORT} is already in use (e.g. npx serve). Stop that server, or run:\n` +
+      `Port ${PORT} is already in use. Stop that server, or run:\n` +
         `  PORT=3040 node scripts/maika-dev-proxy.mjs\n` +
         `then open http://localhost:3040/`,
     );
@@ -575,9 +219,6 @@ server.on('error', (err) => {
 server.listen(PORT, () => {
   console.error(
     `Maika dev: http://localhost:${PORT}/  (site: ${SITE_ROOT})\n` +
-      `  Assess proxy: http://localhost:${PORT}${PROXY_PREFIX}/… → ${UPSTREAM}/…\n` +
-      `  Demo verify: POST http://localhost:${PORT}${DEMO_VERIFY_PATH}\n` +
-      `  Demo code create: POST http://localhost:${PORT}${DEMO_CODE_CREATE_PATH}\n` +
-      `  Demo code revoke: POST http://localhost:${PORT}${DEMO_CODE_REVOKE_PATH}`,
+      `  Assess proxy: http://localhost:${PORT}${PROXY_PREFIX}/… → ${UPSTREAM}/…`,
   );
 });

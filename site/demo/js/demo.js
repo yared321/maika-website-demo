@@ -8,7 +8,6 @@ import {
 } from "./controller/music_stream_controller.js";
 import { ValenceSliderController } from "./controller/slider_controller.js";
 import { ScoreVisualizationController } from "./controller/emotion_score_controller.js";
-import { handleDemoAccess, unlockDemoFlow, setDemoAccessError } from "./controller/demo_access_controller.js";
 import { applyDefaultDemographics } from "./controller/demographic_form_controller.js";
 import {
   applyRecordedPreview,
@@ -66,14 +65,29 @@ function initDemoWizard() {
   bindEvents(dom, state, controllers);
 }
 
+function unlockDemoFlow(dom) {
+  if (dom.demoFlow) {
+    dom.demoFlow.hidden = false;
+    dom.demoFlow.classList.remove("hidden");
+  }
+  if (dom.demoLanding) {
+    dom.demoLanding.hidden = true;
+    dom.demoLanding.classList.add("hidden");
+  }
+}
+
+function startDemoFromLanding(dom, state, updateStep) {
+  unlockDemoFlow(dom);
+  updateStep(dom, state, 0);
+  dom.wizardForm?.querySelector("#age")?.focus();
+}
+
 function getDomReferences() {
   const wizardForm = document.getElementById("demoWizardForm");
   return {
     demoLanding: document.getElementById("demo-landing"),
     demoFlow: document.getElementById("demo-flow"),
-    demoAccessInput: document.getElementById("demo-access-code"),
     demoAccessButton: document.getElementById("demo-access-cta"),
-    demoAccessError: document.getElementById("demo-access-error"),
     wizardForm,
     steps: wizardForm ? Array.from(wizardForm.querySelectorAll(".wizard-step")) : [],
     backButton: wizardForm?.querySelector('[data-action="back"]'),
@@ -302,13 +316,7 @@ function bindEvents(dom, state, controllers) {
   });
 
   dom.demoAccessButton?.addEventListener("click", () => {
-    void handleDemoAccess(dom, state, updateStep);
-  });
-  dom.demoAccessInput?.addEventListener("keydown", (ev) => {
-    if (ev.key === "Enter") {
-      ev.preventDefault();
-      void handleDemoAccess(dom, state, updateStep);
-    }
+    startDemoFromLanding(dom, state, updateStep);
   });
 
   globalThis.addEventListener("beforeunload", () => {
@@ -539,10 +547,6 @@ function returnToLandingPage(dom, state, controllers) {
     dom.demoLanding.classList.remove("hidden");
   }
 
-  if (dom.demoAccessInput) {
-    dom.demoAccessInput.value = "";
-    dom.demoAccessInput.focus();
-  }
-  setDemoAccessError(dom, "");
+  dom.demoAccessButton?.focus();
   updateStep(dom, state, 0, { focus: false });
 }

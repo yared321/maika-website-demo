@@ -368,47 +368,9 @@
   font-size: 0.9rem;
 }
 
-.demo-access-card__label {
-  color: var(--text-soft);
-  font-size: 0.82rem;
-}
-
-.demo-access-card__input {
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  padding: 0.78rem 0.9rem;
-  outline: none;
-}
-
-.demo-access-card__input:focus {
-  border-color: rgba(223, 122, 254, 0.45);
-  box-shadow: 0 0 0 3px rgba(223, 122, 254, 0.12);
-}
-
-.demo-access-card__error {
-  margin: 0;
-  color: #ff9ab5;
-  font-size: 0.82rem;
-}
-
-.demo-access-card__error.hidden {
-  display: none;
-}
-
 .demo-access-card__btn {
   width: fit-content;
   min-width: 140px;
-}
-
-.demo-access-card .cf-turnstile {
-  max-width: 100%;
-  justify-self: start;
-  display: flex;
-  justify-content: flex-start;
-  width: fit-content;
 }
 
 @media (pointer: coarse) {
@@ -518,8 +480,7 @@
     font-size: 0.98rem;
   }
 
-  .demo-access-card__copy,
-  .demo-access-card__label {
+  .demo-access-card__copy {
     font-size: 0.84rem;
   }
 

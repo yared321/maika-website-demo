@@ -1,10 +1,24 @@
 # MAIKA Website
 
-Marketing website for MAIKA.
+Interactive Maika demo (face scan + adaptive music) with API routes for verify and face-assess proxy.
+
+## Local development
+
+```bash
+cp .env.example .env.local   # set MAIKA_RPPG_UPSTREAM for face-scan uploads
+./run.sh                     # or: npm run dev
+```
+
+Open **http://localhost:3040/** — the dev server proxies `/api/face-assess/*` to your upstream.
+
+## Deploy
+
+Static output is in `site/`. Publish that folder (e.g. Netlify: output `site`, no build command). For production face-scan uploads you still need a reverse proxy to `MAIKA_RPPG_UPSTREAM` (see `scripts/README.proxy.md`).
 
 ## Structure
 
-- `site/`: static site content (HTML/CSS/JS)
+- `site/`: static site (`/` serves the demo via `_redirects`)
+- `scripts/`: local dev server + assess API proxy
 
 ## Demo face scan (current logic)
 
@@ -100,7 +114,7 @@ Use embed mode to hide site header/footer and fit the wizard in a parent page:
 ```html
 <iframe
   id="maika-demo"
-  src="https://your-domain.com/demo/?embed=1"
+  src="https://your-domain.com/?embed=1"
   title="Maika interactive demo"
   allow="camera; autoplay; fullscreen"
   loading="lazy"
@@ -126,7 +140,7 @@ window.addEventListener("message", (event) => {
 });
 ```
 
-Netlify headers for `/demo` set `frame-ancestors *` so the page can be framed. Restrict to specific parent origins in `netlify.toml` if needed (e.g. `frame-ancestors https://partner.example`).
+`site/_headers` sets `frame-ancestors *` on `/` so the page can be framed. Restrict to specific parent origins in `_headers` if needed (e.g. `frame-ancestors https://partner.example`).
 
 Debug logging: set `maika-face-scan-debug="true"` in `site/demo/index.html` or add `?faceScanDebug=1` (works with or without embed mode).
 

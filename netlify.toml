@@ -1,17 +1,8 @@
-# Publish static demo + Netlify Functions (production).
-# Optional Cloudflare Pages + /functions: see wrangler.toml and doc/cloudflare-pages.md.
-# Face assess uploads use multipart bodies; Netlify Functions have payload and wall-clock limits—see scripts/README.proxy.md.
+# Static site deploy. Face-assess API: use `npm run dev` locally or add a Netlify/server proxy.
+# See scripts/README.proxy.md
 
 [build]
-  command = "npm run build"
   publish = "site"
-
-[functions]
-  directory = "netlify/functions"
-  # esbuild bundles ESM handlers correctly. zisi emitted a CJS wrapper that `require()`d
-  # `.mjs` files (ERR_REQUIRE_ESM). Runtime env from the Netlify UI still comes from
-  # `process.env` inside the handler; we do not use esbuild `define` for secrets.
-  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/"
@@ -70,24 +61,6 @@
 [[redirects]]
   from = "/api/face-assess/*"
   to = "/.netlify/functions/face-assess-proxy"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/demo-verify"
-  to = "/.netlify/functions/demo-verify"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/demo-code-create"
-  to = "/.netlify/functions/demo-code-create"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/demo-code-revoke"
-  to = "/.netlify/functions/demo-code-revoke"
   status = 200
   force = true
 
