@@ -18,11 +18,22 @@ import {
 export const MUSIC_ENDED_EVENT = "maika-demo:music-ended";
 export const MUSIC_PROGRESS_EVENT = "maika-demo:music-progress";
 
+/** Seconds before track end to begin loop fade-out. */
+const LOOP_FADE_OUT_SEC = 2.5;
+/** Milliseconds to fade volume back in after a loop restart. */
+const LOOP_FADE_IN_MS = 1800;
+
 let musicData = [];
 let controlsBound = false;
 let selectBound = false;
 let selectionLocked = false;
 let activeFadeRaf = 0;
+let loopFadeRaf = 0;
+/** When true, track restarts with crossfade instead of stopping at end. */
+let loopPlaybackEnabled = false;
+/** Wall-clock listening time for wizard duration gate (survives loop restarts). */
+let sessionListenAccumSec = 0;
+let sessionListenStartMs = 0;
 /** Bumps when session resets so in-flight autoplay attempts are ignored. */
 let autoplayGeneration = 0;
 /** Resolves the Promise from the current `stopMusicPlayback` fade (if any). */
@@ -34,9 +45,120 @@ function clearActiveFade() {
   activeFadeRaf = 0;
 }
 
+function clearLoopFade() {
+  if (!loopFadeRaf) return;
+  globalThis.cancelAnimationFrame(loopFadeRaf);
+  loopFadeRaf = 0;
+}
+
+function getTargetVolume() {
+  const volumeSlider = document.getElementById("volume-slider");
+  return volumeSlider ? Number(volumeSlider.value) || 1 : 1;
+}
+
+function resetSessionListenClock() {
+  sessionListenAccumSec = 0;
+  sessionListenStartMs = 0;
+}
+
+function markSessionListenStart() {
+  const audio = getMainAudio();
+  if (!audio || audio.paused || sessionListenStartMs) return;
+  sessionListenStartMs = globalThis.performance.now();
+}
+
+function markSessionListenPause() {
+  if (!sessionListenStartMs) return;
+  sessionListenAccumSec += Math.max(
+    0,
+    (globalThis.performance.now() - sessionListenStartMs) / 1000,
+  );
+  sessionListenStartMs = 0;
+}
+
+function getTotalListenedSeconds() {
+  let total = sessionListenAccumSec;
+  const audio = getMainAudio();
+  if (sessionListenStartMs && audio && !audio.paused) {
+    total += Math.max(
+      0,
+      (globalThis.performance.now() - sessionListenStartMs) / 1000,
+    );
+  }
+  return total;
+}
+
+/** Enable/disable seamless loop with fade-out at end and fade-in on restart. */
+export function setMusicLoopPlayback(enabled) {
+  loopPlaybackEnabled = enabled !== false;
+}
+
+function applyLoopFadeOutVolume(audio) {
+  const d = audio.duration;
+  const targetVol = getTargetVolume();
+  if (
+    !loopPlaybackEnabled ||
+    !Number.isFinite(d) ||
+    d <= LOOP_FADE_OUT_SEC ||
+    loopFadeRaf
+  ) {
+    audio.volume = targetVol;
+    return;
+  }
+  const remaining = d - audio.currentTime;
+  if (remaining <= LOOP_FADE_OUT_SEC && remaining > 0.05) {
+    audio.volume = Math.max(0, targetVol * (remaining / LOOP_FADE_OUT_SEC));
+  } else if (remaining > LOOP_FADE_OUT_SEC) {
+    audio.volume = targetVol;
+  }
+}
+
+function fadeVolumeTo(audio, targetVolume, durationMs) {
+  clearLoopFade();
+  const startVolume = Number.isFinite(audio.volume) ? audio.volume : 0;
+  const startAt = globalThis.performance.now();
+
+  return new Promise((resolve) => {
+    const tick = (now) => {
+      const progress = Math.min(1, Math.max(0, (now - startAt) / durationMs));
+      const eased = progress * progress;
+      audio.volume = startVolume + (targetVolume - startVolume) * eased;
+      if (progress >= 1) {
+        loopFadeRaf = 0;
+        audio.volume = targetVolume;
+        resolve();
+        return;
+      }
+      loopFadeRaf = globalThis.requestAnimationFrame(tick);
+    };
+    loopFadeRaf = globalThis.requestAnimationFrame(tick);
+  });
+}
+
+async function restartTrackWithLoopFade(audio) {
+  if (!loopPlaybackEnabled || !audio) return;
+
+  const targetVol = getTargetVolume();
+  audio.currentTime = 0;
+  audio.volume = 0;
+
+  try {
+    await audio.play();
+    setPlayButtonAppearance("♪", "Playing");
+    setDeckPlaying(true);
+    startSpectrumRenderLoop();
+    await fadeVolumeTo(audio, targetVol, LOOP_FADE_IN_MS);
+  } catch {
+    setPlayButtonAppearance("▶", "Play");
+    setDeckPlaying(false);
+    stopSpectrumRenderLoop();
+  }
+}
+
 /** Cancel an in-progress volume fade and restore volumes from #volume-slider. */
 export function interruptMusicFadeOut() {
   clearActiveFade();
+  clearLoopFade();
   if (typeof activeFadeResolve === "function") {
     const finish = activeFadeResolve;
     activeFadeResolve = null;
@@ -322,15 +444,22 @@ function bindAudioControlsOnce() {
     setPlayButtonAppearance("♪", "Playing");
     playBtn.disabled = true;
     revealCoverArtInSlot();
+    markSessionListenStart();
     startSpectrumRenderLoop();
   });
 
   audio.addEventListener("pause", () => {
+    markSessionListenPause();
     stopSpectrumRenderLoop();
     setDeckPlaying(false);
   });
 
   audio.addEventListener("ended", () => {
+    if (loopPlaybackEnabled) {
+      void restartTrackWithLoopFade(audio);
+      return;
+    }
+    markSessionListenPause();
     setPlayButtonAppearance("▶", "Play");
     playBtn.disabled = false;
     setDeckPlaying(false);
@@ -345,6 +474,7 @@ function bindAudioControlsOnce() {
 
   audio.addEventListener("timeupdate", () => {
     const d = audio.duration;
+    applyLoopFadeOutVolume(audio);
     const progress =
       Number.isFinite(d) && d > 0 ? (audio.currentTime / d) * 100 : 0;
     progressBar.value = String(progress || 0);
@@ -356,6 +486,7 @@ function bindAudioControlsOnce() {
         detail: {
           currentTime: Number.isFinite(audio.currentTime) ? audio.currentTime : 0,
           duration: Number.isFinite(audio.duration) ? audio.duration : 0,
+          listenedSeconds: getTotalListenedSeconds(),
         },
       }),
     );
@@ -523,7 +654,10 @@ export function stopMusicPlayback(options = {}) {
 
   const stopNow = () => {
     clearActiveFade();
+    clearLoopFade();
     activeFadeResolve = null;
+    markSessionListenPause();
+    loopPlaybackEnabled = false;
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
@@ -729,6 +863,8 @@ async function autoplaySelectedMusicTrack(selectTrackFn) {
     if (gen !== autoplayGeneration) return false;
 
     startSpectrumRenderLoop();
+    loopPlaybackEnabled = true;
+    resetSessionListenClock();
     await audio.play();
     return true;
   } catch {
@@ -762,6 +898,9 @@ export async function autoplayMusicTrackByGenre(genre) {
 export function resetMusicDemoSession() {
   autoplayGeneration += 1;
   selectionLocked = false;
+  loopPlaybackEnabled = false;
+  clearLoopFade();
+  resetSessionListenClock();
 
   const select = getSelect();
   const audio = getMainAudio();

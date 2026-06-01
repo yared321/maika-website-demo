@@ -18,6 +18,36 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, '..');
+
+/** Load KEY=value lines from .env.local / .env (does not override existing process.env). */
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  const text = fs.readFileSync(filePath, 'utf8');
+  for (const raw of text.split('\n')) {
+    let line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    if (line.endsWith('\\')) continue;
+    line = line.replace(/^export\s+/, '');
+    const eq = line.indexOf('=');
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    let val = line.slice(eq + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    if (process.env[key] == null || process.env[key] === '') {
+      process.env[key] = val;
+    }
+  }
+}
+
+loadEnvFile(path.join(REPO_ROOT, '.env.local'));
+loadEnvFile(path.join(REPO_ROOT, '.env'));
+
 const SITE_ROOT = process.env.SITE_ROOT
   ? path.resolve(process.env.SITE_ROOT)
   : path.join(REPO_ROOT, 'site');
@@ -228,9 +258,21 @@ server.on('error', (err) => {
   process.exit(1);
 });
 
+function maskSecret(value) {
+  const s = String(value || '').trim();
+  if (!s) return '(not set)';
+  if (s.length <= 8) return '***';
+  return `…${s.slice(-4)} (${s.length} chars)`;
+}
+
 server.listen(PORT, () => {
+  const authNote =
+    !PUBLIC_KEY
+      ? '\n  ⚠ MAIKA_PUBLIC_KEY is missing — assess uploads will get 401. Add it to .env.local and restart.'
+      : `\n  Auth: public key ${maskSecret(PUBLIC_KEY)}, captcha token ${maskSecret(CAPTCHA_TOKEN)}`;
   console.error(
     `Maika dev: http://localhost:${PORT}/  (site: ${SITE_ROOT})\n` +
-      `  Assess proxy: http://localhost:${PORT}${PROXY_PREFIX}/… → ${UPSTREAM}/…`,
+      `  Assess proxy: http://localhost:${PORT}${PROXY_PREFIX}/… → ${UPSTREAM}/…` +
+      authNote,
   );
 });

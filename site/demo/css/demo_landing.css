@@ -403,6 +403,14 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+.demo-access-card__consent .consent-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 0.2rem;
+  accent-color: var(--purple, #814ac8);
+  cursor: pointer;
+}
+
 .demo-access-card__consent .consent-note {
   margin: 0.35rem 0 0;
 }

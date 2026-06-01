@@ -26,7 +26,6 @@ import {
   restartFaceScanForNewRecording,
   setFaceScanConsentRequired,
 } from "./controller/face_scan_flow_controller.js";
-import { MUSIC_HISTOGRAM_WINDOW_SEC } from "./controller/music_waveform_renderer.js";
 import { syncWizardNextButton } from "./controller/wizard_nav_controller.js";
 import {
   placeValenceInScanIntro,
@@ -37,8 +36,8 @@ var MUSIC_FADE_MS_ON_BACK_TO_DEMOGRAPHIC = 3000;
 const VALENCE_X_AXIS_DEFAULT = 0;
 /** Earliest manual proceed to face scan (button enabled). */
 const MUSIC_PROCEED_MIN_SECONDS = 30;
-/** Auto-advance to face scan after one minute of listening. */
-const MUSIC_AUTO_ADVANCE_SECONDS = MUSIC_HISTOGRAM_WINDOW_SEC;
+/** Default listening session length (2 minutes) when landing duration is unset. */
+const MUSIC_DEFAULT_DURATION_SECONDS = 120;
 
 /** Wizard steps that hide Next (post-music face scan auto-advances after upload). */
 const AUTO_ADVANCE_STEPS = new Set([2]);
@@ -99,14 +98,13 @@ function startDemoFromLanding(dom, state, updateStep) {
 }
 
 function applyLandingPreferences(dom, state) {
-  const duration = Number(dom.landingDurationSelect?.value) || MUSIC_AUTO_ADVANCE_SECONDS;
+  const duration = Number(dom.landingDurationSelect?.value) || MUSIC_DEFAULT_DURATION_SECONDS;
   const genre = String(dom.landingGenreSelect?.value || "").trim();
 
   state.preferences.genre = genre;
   state.preferences.durationSeconds = duration;
   state.musicGate.selectedGenre = genre;
   state.musicGate.proceedMinSeconds = Math.min(MUSIC_PROCEED_MIN_SECONDS, duration);
-  state.musicGate.autoAdvanceSeconds = duration;
 }
 
 function setLandingError(dom, message) {
@@ -195,15 +193,13 @@ function createInitialState(stepCount) {
     },
     musicGate: {
       proceedMinSeconds: MUSIC_PROCEED_MIN_SECONDS,
-      autoAdvanceSeconds: MUSIC_AUTO_ADVANCE_SECONDS,
       listenedSeconds: 0,
       requirementMet: false,
-      autoAdvanced: false,
       selectedGenre: "",
     },
     preferences: {
       genre: "",
-      durationSeconds: MUSIC_AUTO_ADVANCE_SECONDS,
+      durationSeconds: MUSIC_DEFAULT_DURATION_SECONDS,
     },
     nextButtonLabels: new Map([
       [0, "Continue"],
@@ -279,8 +275,11 @@ function startPostScanCapture(dom, state) {
 
 function bindEvents(dom, state, controllers) {
   document.addEventListener(MUSIC_PROGRESS_EVENT, (ev) => {
-    const seconds = Number(ev?.detail?.currentTime) || 0;
-    state.musicGate.listenedSeconds = Math.max(state.musicGate.listenedSeconds, seconds);
+    const listened =
+      Number(ev?.detail?.listenedSeconds) ||
+      Number(ev?.detail?.currentTime) ||
+      0;
+    state.musicGate.listenedSeconds = listened;
 
     if (
       !state.musicGate.requirementMet &&
@@ -288,15 +287,6 @@ function bindEvents(dom, state, controllers) {
     ) {
       state.musicGate.requirementMet = true;
       syncWizardNextButton(dom, state);
-    }
-
-    if (
-      state.currentStep === 1 &&
-      !state.musicGate.autoAdvanced &&
-      state.musicGate.listenedSeconds >= state.musicGate.autoAdvanceSeconds
-    ) {
-      state.musicGate.autoAdvanced = true;
-      updateStep(dom, state, 2, { controllers });
     }
   });
 
@@ -417,7 +407,6 @@ function updateStep(dom, state, targetStep, options = {}) {
   if (targetStep === 1) {
     state.musicGate.listenedSeconds = 0;
     state.musicGate.requirementMet = false;
-    state.musicGate.autoAdvanced = false;
     globalThis.requestAnimationFrame(function () {
       globalThis.requestAnimationFrame(function () {
         void autoplayMusicTrackByGenre(state.musicGate.selectedGenre);
