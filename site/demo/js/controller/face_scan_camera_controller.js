@@ -2,6 +2,7 @@
  * Camera preview, getUserMedia, alignment / record face-framing loops, scan FX, countdown.
  */
 import * as H from "../utils/face_scan_helpers.js";
+import { t } from "../i18n/index.js";
 
 /**
  * @param {{ faceMinMeanLuminance?: number }} cfg
@@ -122,13 +123,13 @@ function syncTargetGuide(state, direction) {
   var guideEl = state.el.faceScanTarget.querySelector(".face-scan-target-guide");
   if (!guideEl) return;
   var labels = {
-    left: "Move left",
-    right: "Move right",
-    up: "Move up",
-    down: "Move down",
-    near: "Move closer",
-    far: "Move back",
-    center: "Move to center",
+    left: t("faceScan.placement.guideLeft"),
+    right: t("faceScan.placement.guideRight"),
+    up: t("faceScan.placement.guideUp"),
+    down: t("faceScan.placement.guideDown"),
+    near: t("faceScan.placement.guideNear"),
+    far: t("faceScan.placement.guideFar"),
+    center: t("faceScan.placement.guideCenter"),
   };
   var txt = labels[direction] || "";
   guideEl.textContent = txt;
@@ -231,7 +232,7 @@ function syncFaceScanFx(state, optBox, alignOk, guideDirection) {
  */
 function getGuideOrCenter(state, box) {
   if (!box) {
-    return { direction: "center", message: "Move to the center." };
+    return { direction: "center", message: t("faceScan.placement.moveToCenter") };
   }
   return (
     H.getFaceFramingGuidance(
@@ -239,7 +240,7 @@ function getGuideOrCenter(state, box) {
       state.el.preview,
       state.cfg.faceMinFrac,
       state.cfg.faceMaxFrac,
-    ) || { direction: "center", message: "Move to the center." }
+    ) || { direction: "center", message: t("faceScan.placement.moveToCenter") }
   );
 }
 
@@ -269,7 +270,7 @@ function tickCameraRecordFraming(state) {
     H.setPlacementUi(
       state.el.placementStatus,
       "good",
-      "Recording — face guide off.",
+      t("faceScan.recording.guideOff"),
     );
     syncFaceScanFx(state, null);
     if (recNoDet.state !== "recording") {
@@ -319,9 +320,9 @@ function tickCameraRecordFraming(state) {
           box
             ? resolveGuideMessage(
                 guide,
-                "Paused — move to the center.",
+                t("faceScan.recording.paused"),
               )
-            : "Paused — center your face in the frame.",
+            : t("faceScan.recording.pausedCenterFrame"),
         );
         syncFaceScanFx(state, box, false, guide && guide.direction);
         return;
@@ -335,7 +336,7 @@ function tickCameraRecordFraming(state) {
         H.setPlacementUi(
           state.el.placementStatus,
           "bad",
-          "Paused — too dark. Add more light.",
+          t("faceScan.recording.pausedDark"),
         );
         syncFaceScanFx(state, box, false, null);
         return;
@@ -347,7 +348,7 @@ function tickCameraRecordFraming(state) {
       H.setPlacementUi(
         state.el.placementStatus,
         "good",
-        "Recording...",
+        t("faceScan.recording.inProgress"),
       );
       syncFaceScanFx(state, box);
 
@@ -391,7 +392,7 @@ function tickAlignment(state) {
     stopAlignLoop(state);
     state.ctx.phase = "countdown";
     syncFaceScanFx(state, null);
-    H.setPlacementUi(state.el.placementStatus, "wait", "Starting…");
+    H.setPlacementUi(state.el.placementStatus, "wait", t("faceScan.placement.starting"));
     runCountdownThenRecord(state);
     return;
   }
@@ -416,7 +417,7 @@ function tickAlignment(state) {
           H.setPlacementUi(
             state.el.placementStatus,
             "bad",
-            "Too dark — add light on your face.",
+            t("faceScan.recording.tooDark"),
           );
           syncFaceScanFx(state, box, false, null);
           return;
@@ -424,16 +425,16 @@ function tickAlignment(state) {
         state.ctx.placementStableHits++;
         var msg =
           state.ctx.placementStableHits >= state.cfg.stableHitCount - 1
-            ? "Almost there — hold still."
+            ? t("faceScan.recording.almostThere")
             : state.ctx.placementStableHits >= state.cfg.stableHitCount - 2
-              ? "Looking good."
-              : "Face aligned — hold still.";
+              ? t("faceScan.recording.lookingGood")
+              : t("faceScan.recording.aligned");
         H.setPlacementUi(state.el.placementStatus, "good", msg);
         if (state.ctx.placementStableHits >= state.cfg.stableHitCount) {
           stopAlignLoop(state);
           state.ctx.phase = "countdown";
           syncFaceScanFx(state, null);
-          H.setPlacementUi(state.el.placementStatus, "wait", "Starting…");
+          H.setPlacementUi(state.el.placementStatus, "wait", t("faceScan.placement.starting"));
           runCountdownThenRecord(state);
         }
       } else {
@@ -443,8 +444,8 @@ function tickAlignment(state) {
           state.el.placementStatus,
           "bad",
           detection && detection.box
-            ? resolveGuideMessage(guideAlign, "Move to the center.")
-            : "Center your face in the frame.",
+            ? resolveGuideMessage(guideAlign, t("faceScan.placement.moveToCenter"))
+            : t("faceScan.placement.centerInFrame"),
         );
         syncFaceScanFx(state, box, false, guideAlign && guideAlign.direction);
         return;
@@ -550,14 +551,14 @@ function stopStream(state) {
 function requestCameraAndStartAlignment(state) {
   if (state.bridges.hideError) state.bridges.hideError();
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    showCameraDeniedOverlay(state, "Camera needs HTTPS or localhost.");
+    showCameraDeniedOverlay(state, t("faceScan.errors.httpsRequired"));
     return;
   }
 
   if (state.el.scanOverlayCamera) state.el.scanOverlayCamera.classList.remove("hidden");
   if (state.el.scanOverlayDenied) state.el.scanOverlayDenied.classList.add("hidden");
   if (state.el.scanOverlayCameraText) {
-    state.el.scanOverlayCameraText.textContent = "Requesting camera access…";
+    state.el.scanOverlayCameraText.textContent = t("faceScan.overlay.requestingAccess");
   }
 
   state.ctx.phase = "align";
@@ -580,7 +581,7 @@ function requestCameraAndStartAlignment(state) {
       H.setPlacementUi(
         state.el.placementStatus,
         "wait",
-        "Center your face in the frame.",
+        t("faceScan.placement.centerInFrame"),
       );
       return new Promise(function (resolve) {
         if (!state.el.preview) {

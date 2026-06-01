@@ -145,12 +145,12 @@ async function restartTrackWithLoopFade(audio) {
 
   try {
     await audio.play();
-    setPlayButtonAppearance("♪", "Playing");
+    setPlayButtonAppearance("♪", t("music.playing"));
     setDeckPlaying(true);
     startSpectrumRenderLoop();
     await fadeVolumeTo(audio, targetVol, LOOP_FADE_IN_MS);
   } catch {
-    setPlayButtonAppearance("▶", "Play");
+    setPlayButtonAppearance("▶", t("music.play"));
     setDeckPlaying(false);
     stopSpectrumRenderLoop();
   }
@@ -239,7 +239,7 @@ function populateMusicSelect() {
   }
 
   select.innerHTML =
-    '<option value="">— Choose a track —</option>' + optionsMarkup;
+    `<option value="">${escapeHtml(t("music.selectPlaceholder"))}</option>` + optionsMarkup;
 
   if (preservedValue !== "" && musicData[Number(preservedValue)]) {
     select.value = preservedValue;
@@ -419,12 +419,12 @@ function bindAudioControlsOnce() {
   rewindBtn.disabled = true;
   forwardBtn.disabled = true;
   progressBar.disabled = true;
-  setPlayButtonAppearance("▶", "Play selected track");
+  setPlayButtonAppearance("▶", t("music.playSelected"));
   playBtn.disabled = true;
 
   playBtn.addEventListener("click", () => {
     if (getSelect().value === "" || !audio.paused) return;
-    setPlayButtonAppearance("⏳", "Starting playback");
+    setPlayButtonAppearance("⏳", t("music.starting"));
     playBtn.disabled = true;
     void (async () => {
       try {
@@ -432,7 +432,7 @@ function bindAudioControlsOnce() {
         startSpectrumRenderLoop();
         await audio.play();
       } catch {
-        setPlayButtonAppearance("▶", "Play selected track");
+        setPlayButtonAppearance("▶", t("music.playSelected"));
         playBtn.disabled = false;
         setDeckPlaying(false);
         stopSpectrumRenderLoop();
@@ -442,7 +442,7 @@ function bindAudioControlsOnce() {
 
   audio.addEventListener("play", () => {
     setDeckPlaying(true);
-    setPlayButtonAppearance("♪", "Playing");
+    setPlayButtonAppearance("♪", t("music.playing"));
     playBtn.disabled = true;
     revealCoverArtInSlot();
     markSessionListenStart();
@@ -461,7 +461,7 @@ function bindAudioControlsOnce() {
       return;
     }
     markSessionListenPause();
-    setPlayButtonAppearance("▶", "Play");
+    setPlayButtonAppearance("▶", t("music.play"));
     playBtn.disabled = false;
     setDeckPlaying(false);
     stopSpectrumRenderLoop();
@@ -554,7 +554,7 @@ function onMusicSelectChange() {
     }
     if (currentTimeEl) currentTimeEl.textContent = "0:00";
     if (playBtn) playBtn.disabled = true;
-    setPlayButtonAppearance("▶", "Play selected track");
+    setPlayButtonAppearance("▶", t("music.playSelected"));
     setDeckPlaying(false);
     setWavePanelLoading(false);
     clearWaveform();
@@ -572,7 +572,7 @@ function onMusicSelectChange() {
 
   audio.pause();
   if (playBtn) {
-    setPlayButtonAppearance("▶", "Play selected track");
+    setPlayButtonAppearance("▶", t("music.playSelected"));
     playBtn.disabled = true;
   }
   setWavePanelLoading(true);
@@ -596,7 +596,7 @@ function onMusicSelectChange() {
 
   const markPlayable = () => {
     if (playBtn && getSelect().value !== "") {
-      setPlayButtonAppearance("▶", "Play selected track");
+      setPlayButtonAppearance("▶", t("music.playSelected"));
       playBtn.disabled = false;
     }
     setWavePanelLoading(false);
@@ -604,7 +604,7 @@ function onMusicSelectChange() {
 
   const markFailed = () => {
     if (playBtn && getSelect().value !== "") {
-      setPlayButtonAppearance("⚠", "Unable to load track");
+      setPlayButtonAppearance("⚠", t("music.unableToLoad"));
       playBtn.disabled = true;
     }
     setWavePanelLoading(false);
@@ -668,7 +668,7 @@ export function stopMusicPlayback(options = {}) {
       fallback.currentTime = 0;
     }
     if (playBtn) {
-      setPlayButtonAppearance("▶", "Play");
+      setPlayButtonAppearance("▶", t("music.play"));
     }
     setDeckPlaying(false);
     stopSpectrumRenderLoop();
@@ -871,7 +871,7 @@ async function autoplaySelectedMusicTrack(selectTrackFn) {
   } catch {
     if (gen !== autoplayGeneration) return false;
     const playBtn = document.getElementById("play-pause-btn");
-    if (playBtn) setPlayButtonAppearance("▶", "Play");
+    if (playBtn) setPlayButtonAppearance("▶", t("music.play"));
     setDeckPlaying(false);
     stopSpectrumRenderLoop();
     return false;
@@ -933,14 +933,14 @@ export function resetMusicDemoSession() {
   if (currentTimeEl) currentTimeEl.textContent = "0:00";
 
   if (playBtn) {
-    setPlayButtonAppearance("▶", "Play selected track");
+    setPlayButtonAppearance("▶", t("music.playSelected"));
     playBtn.disabled = true;
   }
 
   const titleEl = document.getElementById("title");
   const artistEl = document.getElementById("artist");
   const genresEl = document.getElementById("genre-tags");
-  if (titleEl) titleEl.textContent = "Song Title";
+  if (titleEl) titleEl.textContent = t("music.defaultTitle");
   if (artistEl) {
     artistEl.textContent = "";
     artistEl.hidden = true;

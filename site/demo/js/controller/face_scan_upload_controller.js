@@ -5,6 +5,18 @@ import {
 } from "../service/service.js";
 import { applyDefaultDemographics } from "./demographic_form_controller.js";
 import { syncWizardNextButton } from "./wizard_nav_controller.js";
+import { t } from "../i18n/index.js";
+
+const UPLOAD_STATUS_KEYS = {
+  idle: "faceScan.upload.statusIdle",
+  uploading: "faceScan.upload.statusUploading",
+  success: "faceScan.upload.statusSuccess",
+  error: "faceScan.upload.statusError",
+};
+
+function uploadStatusLabel(mode) {
+  return t(UPLOAD_STATUS_KEYS[mode] || UPLOAD_STATUS_KEYS.idle);
+}
 
 /**
  * Read arousal from an API assessment payload.
@@ -18,11 +30,10 @@ function extractArousalFromResult(data) {
 }
 
 const UPLOAD_STATUS = {
-  idle: "Ready to upload and calculate score",
-  uploading: "Uploading video and calculating score…",
-  success: "Score calculated. You can continue.",
-  error:
-    "Upload or score failed. Use Record again for a new video, or Continue to retry this one.",
+  idle: "idle",
+  uploading: "uploading",
+  success: "success",
+  error: "error",
 };
 
 /**
@@ -45,8 +56,8 @@ export function syncRecordAgainButton(dom, show) {
  */
 function failFaceUpload(dom, state, setWizardError, statusLabel, wizardMessage) {
   state.upload.completed = false;
-  setUploadUiState(dom, state, "error", statusLabel || UPLOAD_STATUS.error);
-  setWizardError(dom, wizardMessage || statusLabel || UPLOAD_STATUS.error);
+  setUploadUiState(dom, state, "error", statusLabel || uploadStatusLabel(UPLOAD_STATUS.error));
+  setWizardError(dom, wizardMessage || statusLabel || uploadStatusLabel(UPLOAD_STATUS.error));
   syncRecordAgainButton(dom, true);
   syncFaceStepNextGate(dom, state);
 }
@@ -129,7 +140,7 @@ export function clearRecordedPreview(dom, state) {
     state.upload.recordedPreviewUrl = "";
   }
   dom.uploadPreviewCard?.classList.add("hidden");
-  setUploadUiState(dom, state, "idle", UPLOAD_STATUS.idle);
+  setUploadUiState(dom, state, "idle", uploadStatusLabel(UPLOAD_STATUS.idle));
   syncRecordAgainButton(dom, false);
 }
 
@@ -148,7 +159,7 @@ export function applyRecordedPreview(dom, state, blob) {
   dom.recordedPreview.src = state.upload.recordedPreviewUrl;
   dom.recordedPreview.load();
   dom.uploadPreviewCard?.classList.remove("hidden");
-  setUploadUiState(dom, state, "idle", UPLOAD_STATUS.idle);
+  setUploadUiState(dom, state, "idle", uploadStatusLabel(UPLOAD_STATUS.idle));
   syncRecordAgainButton(dom, false);
 }
 
@@ -184,8 +195,8 @@ export async function startFaceUpload(dom, state, setWizardError) {
       dom,
       state,
       setWizardError,
-      UPLOAD_STATUS.error,
-      "Upload could not start because required profile fields are missing.",
+      uploadStatusLabel(UPLOAD_STATUS.error),
+      t("faceScan.upload.profileMissing"),
     );
     return;
   }
@@ -195,8 +206,8 @@ export async function startFaceUpload(dom, state, setWizardError) {
       dom,
       state,
       setWizardError,
-      UPLOAD_STATUS.error,
-      "Face-scan consent is required before upload and score calculation.",
+      uploadStatusLabel(UPLOAD_STATUS.error),
+      t("faceScan.upload.consentRequired"),
     );
     return;
   }
@@ -207,8 +218,8 @@ export async function startFaceUpload(dom, state, setWizardError) {
       dom,
       state,
       setWizardError,
-      UPLOAD_STATUS.error,
-      "Upload URL is not configured.",
+      uploadStatusLabel(UPLOAD_STATUS.error),
+      t("faceScan.upload.endpointMissing"),
     );
     return;
   }
@@ -218,7 +229,7 @@ export async function startFaceUpload(dom, state, setWizardError) {
 
   state.upload.isInFlight = true;
   setWizardError(dom, "");
-  setUploadUiState(dom, state, "uploading", UPLOAD_STATUS.uploading);
+  setUploadUiState(dom, state, "uploading", uploadStatusLabel(UPLOAD_STATUS.uploading));
   syncRecordAgainButton(dom, false);
   syncFaceStepNextGate(dom, state);
 
@@ -233,7 +244,7 @@ export async function startFaceUpload(dom, state, setWizardError) {
 
     if (uploadResult.ok) {
       state.upload.completed = true;
-      setUploadUiState(dom, state, "success", UPLOAD_STATUS.success);
+      setUploadUiState(dom, state, "success", uploadStatusLabel(UPLOAD_STATUS.success));
       syncRecordAgainButton(dom, false);
       if (uploadResult.data && typeof uploadResult.data === "object") {
         state.assessment.latestResult = uploadResult.data;
@@ -261,18 +272,26 @@ export async function startFaceUpload(dom, state, setWizardError) {
     const message =
       uploadResult.errorMessage ||
       (uploadResult.timedOut
-        ? "Upload timed out."
+        ? t("faceScan.upload.timedOut")
         : uploadResult.netError
-          ? "Network or CORS error."
-          : `Upload failed (HTTP ${uploadResult.status || 0}).`);
-    failFaceUpload(dom, state, setWizardError, UPLOAD_STATUS.error, message);
+          ? t("faceScan.upload.networkError")
+          : t("faceScan.upload.failedHttp", {
+              status: uploadResult.status || 0,
+            }));
+    failFaceUpload(
+      dom,
+      state,
+      setWizardError,
+      uploadStatusLabel(UPLOAD_STATUS.error),
+      message,
+    );
   } catch (error) {
     failFaceUpload(
       dom,
       state,
       setWizardError,
-      UPLOAD_STATUS.error,
-      "Unexpected upload error. Please try again.",
+      uploadStatusLabel(UPLOAD_STATUS.error),
+      t("faceScan.upload.unexpectedError"),
     );
     console.error("Upload failed unexpectedly:", error);
   } finally {

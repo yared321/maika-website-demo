@@ -3,6 +3,7 @@
  */
 import * as H from "../utils/face_scan_helpers.js";
 import { FaceScanUpload } from "../service/service.js";
+import { t } from "../i18n/index.js";
 
 /**
  * Reveal result panel and hide scan panel after recording completes.
@@ -28,7 +29,9 @@ function startRecordingPillTicker(ctx, el, cfg) {
       H.formatTime(ctx.recordBudgetAccumMs) + " / " + H.formatTime(cfg.recordTargetMs);
     var pausedUi =
       ctx.recordingFramingReady && ctx.recorder && ctx.recorder.state === "paused";
-    el.recordingTime.textContent = pausedUi ? label + " · paused" : label;
+    el.recordingTime.textContent = pausedUi
+      ? label + t("faceScan.recording.pausedSuffix")
+      : label;
   }, 250);
 }
 
@@ -59,9 +62,7 @@ function handleDeferredUploadFlow(blob, lastMime, baseTxt, el, bridges, resolve)
 function handleImmediateUploadFlow(blob, lastMime, baseTxt, el, bridges, resolve) {
   var upload = FaceScanUpload;
   if (!upload || typeof upload.resolveEndpoint !== "function") {
-    bridges.showError(
-      "Upload module missing. Load service.js before app.js (see README).",
-    );
+    bridges.showError(t("faceScan.upload.moduleMissing"));
     if (el.mimeHint) el.mimeHint.textContent = baseTxt + ".";
     showRecordingResultPanel(el);
     resolve();
@@ -245,7 +246,7 @@ function beginRecordingState(state) {
     Camera.stopRecordFramingLoop();
 
     if (!state.ctx.stream) {
-      state.bridges.showError("No camera stream.");
+      state.bridges.showError(t("faceScan.errors.noCameraStream"));
       state.bridges.resetUiToStart();
       resolve();
       return;
@@ -256,7 +257,7 @@ function beginRecordingState(state) {
       H.setPlacementUi(
         state.el.placementStatus,
         "wait",
-        "Recording — full view.",
+        t("faceScan.recording.fullView"),
       );
     }
 
@@ -272,7 +273,7 @@ function beginRecordingState(state) {
       );
     } catch (e) {
       state.bridges.showError(
-        e && e.message ? e.message : "Could not start recorder.",
+        e && e.message ? e.message : t("faceScan.errors.recorderFailed"),
       );
       Camera.stopStream();
       state.bridges.resetUiToStart();

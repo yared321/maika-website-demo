@@ -11,14 +11,15 @@
 import en from "./strings/en.js";
 
 /**
- * Demo language — change here to enable Dutch or English.
- * @type {"en" | "nl"}
+ * Demo language — change here: `"en"`, `"nl"`, or `"de"`.
+ * @type {"en" | "nl" | "de"}
  */
-export const DEMO_LOCALE = "nl";
+export const DEMO_LOCALE = "de";
 
 const localeLoaders = {
   en: () => Promise.resolve(en),
   nl: () => import("./strings/nl.js").then((mod) => mod.default),
+  de: () => import("./strings/de.js").then((mod) => mod.default),
 };
 
 /** @type {readonly string[]} */

@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.js";
+
 export class ValenceSliderController {
   constructor(options = {}) {
     this.sliderEl = options.sliderEl || null;
@@ -11,7 +13,7 @@ export class ValenceSliderController {
       typeof options.onChange === "function" ? options.onChange : null;
     this.state = {
       xAxisValencePercent: this.defaultValue,
-      xAxisValenceLabel: "Neutral",
+      xAxisValenceLabel: "",
       xAxisValenceEmoji: this.toneEmoji(this.defaultValue),
     };
   }
@@ -38,11 +40,11 @@ export class ValenceSliderController {
   }
 
   toneLabel(n) {
-    if (n <= -60) return "Very negative / unpleasant";
-    if (n < -15) return "Negative";
-    if (n < 15) return "Neutral";
-    if (n < 60) return "Positive";
-    return "Very positive / pleasant";
+    if (n <= -60) return t("valence.veryNegative");
+    if (n < -15) return t("valence.negative");
+    if (n < 15) return t("valence.neutral");
+    if (n < 60) return t("valence.positive");
+    return t("valence.veryPositive");
   }
 
   /**

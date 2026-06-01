@@ -3,6 +3,7 @@
  */
 
 import { getDetectorOptions as getFaceDetectorOptions } from "./face_scan_face_model.js";
+import { t } from "../i18n/index.js";
 
 /**
  * `document.getElementById` shorthand.
@@ -50,15 +51,15 @@ export function formatTime(ms) {
 export function friendlyCameraMessage(err) {
   var name = err && err.name ? String(err.name) : "";
   if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-    return "Camera access was blocked. Allow the camera for this site, then try again.";
+    return t("faceScan.errors.cameraBlocked");
   }
   if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-    return "No camera was found.";
+    return t("faceScan.errors.noCameraFound");
   }
   if (name === "NotReadableError" || name === "TrackStartError") {
-    return "The camera is busy or could not start.";
+    return t("faceScan.errors.cameraBusy");
   }
-  return "Could not open the camera. Use HTTPS or localhost.";
+  return t("faceScan.errors.cameraGeneric");
 }
 
 /**
@@ -159,10 +160,10 @@ export function getFaceFramingGuidance(box, video, faceMinFrac, faceMaxFrac) {
   var widthFrac = box.width / reg.sw;
 
   if (widthFrac < faceMinFrac) {
-    return { direction: "near", message: "Move slightly closer." };
+    return { direction: "near", message: t("faceScan.placement.moveCloser") };
   }
   if (widthFrac > faceMaxFrac) {
-    return { direction: "far", message: "Move slightly back." };
+    return { direction: "far", message: t("faceScan.placement.moveBack") };
   }
 
   var absX = Math.abs(dxPct);
@@ -171,15 +172,15 @@ export function getFaceFramingGuidance(box, video, faceMinFrac, faceMaxFrac) {
 
   if (absX >= absY) {
     if (dxPct < 0) {
-      return { direction: "right", message: "Move slightly to the right." };
+      return { direction: "right", message: t("faceScan.placement.moveRight") };
     }
-    return { direction: "left", message: "Move slightly to the left." };
+    return { direction: "left", message: t("faceScan.placement.moveLeft") };
   }
 
   if (dyPct < 0) {
-    return { direction: "down", message: "Move slightly down." };
+    return { direction: "down", message: t("faceScan.placement.moveDown") };
   }
-  return { direction: "up", message: "Move slightly up." };
+  return { direction: "up", message: t("faceScan.placement.moveUp") };
 }
 
 /** Minimum mean luma (0–255) over the face ROI before align/recording may proceed. Tune per backend sensitivity. */

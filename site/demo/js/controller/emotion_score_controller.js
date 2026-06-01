@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.js";
+
 function bindDomElements(controller) {
   controller.emotionMap = controller.root.querySelector("#emotion-map");
   controller.emotionMapPoint = controller.root.querySelector("#emotion-map-point");
@@ -193,49 +195,53 @@ function drawConstellationLines(controller, nearestLabels, mapLeft, mapTop) {
   controller.emotionConstellationLinks.appendChild(toPoint);
 }
 
-const EMOTION_MODE_POINTS = [
-  { label: "Angry", valence: -25, arousal: 90 },
-  { label: "Afraid", valence: -54, arousal: 72 },
-  { label: "Stressed", valence: -67, arousal: 54 },
-  { label: "Annoyed", valence: -24, arousal: 42 },
-  { label: "Frustrated", valence: -55, arousal: 24 },
-  { label: "Disappointed", valence: -75, arousal: 0 },
-  { label: "Apathetic", valence: -56, arousal: -24 },
-  { label: "Melancholic", valence: -24, arousal: -46 },
-  { label: "Sad", valence: -58, arousal: -70 },
-  { label: "Bored", valence: -30, arousal: -86 },
-  { label: "Neutral", valence: 0, arousal: 0 },
-  { label: "Aroused", valence: 32, arousal: 76 },
-  { label: "Excited", valence: 65, arousal: 60 },
-  { label: "Focused", valence: 40, arousal: 39 },
-  { label: "Happy", valence: 72, arousal: 24 },
-  { label: "Pleased", valence: 72, arousal: 0 },
-  { label: "Content", valence: 56, arousal: -30 },
-  { label: "Relaxed", valence: 62, arousal: -60 },
-  { label: "Calm", valence: 36, arousal: -84 },
+const EMOTION_MODE_SPECS = [
+  { key: "angry", valence: -25, arousal: 90 },
+  { key: "afraid", valence: -54, arousal: 72 },
+  { key: "stressed", valence: -67, arousal: 54 },
+  { key: "annoyed", valence: -24, arousal: 42 },
+  { key: "frustrated", valence: -55, arousal: 24 },
+  { key: "disappointed", valence: -75, arousal: 0 },
+  { key: "apathetic", valence: -56, arousal: -24 },
+  { key: "melancholic", valence: -24, arousal: -46 },
+  { key: "sad", valence: -58, arousal: -70 },
+  { key: "bored", valence: -30, arousal: -86 },
+  { key: "neutral", valence: 0, arousal: 0 },
+  { key: "aroused", valence: 32, arousal: 76 },
+  { key: "excited", valence: 65, arousal: 60 },
+  { key: "focused", valence: 40, arousal: 39 },
+  { key: "happy", valence: 72, arousal: 24 },
+  { key: "pleased", valence: 72, arousal: 0 },
+  { key: "content", valence: 56, arousal: -30 },
+  { key: "relaxed", valence: 62, arousal: -60 },
+  { key: "calm", valence: 36, arousal: -84 },
 ];
+
+function emotionModeLabel(key) {
+  return t(`wizard.results.modes.${key}`);
+}
 
 /**
  * Find the nearest emotion modes to the given valence and arousal scores
- * by calculating Euclidean distance and returning the top N labels.
+ * by calculating Euclidean distance and returning the top N mode keys.
  * @param {number} valence - The valence score.
  * @param {number} arousal - The arousal score.
  * @param {number} count - The number of nearest modes to return.
- * @returns {string[]} Array of emotion mode labels sorted by proximity.
+ * @returns {string[]} Array of emotion mode keys sorted by proximity.
  */
 function getNearestEmotionModes(valence, arousal, count) {
-  return EMOTION_MODE_POINTS
+  return EMOTION_MODE_SPECS
     .map((m) => {
       const dx = valence - m.valence;
       const dy = arousal - m.arousal;
       return {
-        label: m.label,
+        key: m.key,
         dist2: dx * dx + dy * dy,
       };
     })
     .sort((a, b) => a.dist2 - b.dist2)
     .slice(0, Math.max(1, count))
-    .map((m) => m.label);
+    .map((m) => m.key);
 }
 
 /**
@@ -251,13 +257,13 @@ function renderEmotionModeAnchorStars(controller) {
   if (!controller.emotionModeAnchors) return;
   controller.emotionModeAnchors.innerHTML = "";
 
-  for (const mode of EMOTION_MODE_POINTS) {
+  for (const mode of EMOTION_MODE_SPECS) {
     const pos = computeMapPosition(mode.valence, mode.arousal);
     const star = createMapStar(pos.mapLeft, pos.mapTop, {
       outerR: 0.72,
       innerR: 0.3,
       className: "emotion-mode-anchor-star",
-      label: mode.label,
+      label: emotionModeLabel(mode.key),
     });
     controller.emotionModeAnchors.appendChild(star);
   }
@@ -268,9 +274,9 @@ function initEmotionModeLayer(controller) {
   clearActiveEmotionModes(controller);
   controller.emotionModePositions = new Map();
 
-  for (const mode of EMOTION_MODE_POINTS) {
+  for (const mode of EMOTION_MODE_SPECS) {
     controller.emotionModePositions.set(
-      mode.label,
+      mode.key,
       computeMapPosition(mode.valence, mode.arousal),
     );
   }
@@ -294,16 +300,16 @@ function renderNearestEmotionMarkers(controller, nearest) {
 
   if (controller.emotionConstellationStars) {
     controller.emotionConstellationStars.innerHTML = "";
-    for (const label of nearest) {
-      const pos = controller.emotionModePositions.get(label);
+    for (const key of nearest) {
+      const pos = controller.emotionModePositions.get(key);
       if (!pos) continue;
-      const isPrimary = label === nearest[0];
+      const isPrimary = key === nearest[0];
       const star = createMapStar(pos.mapLeft, pos.mapTop, {
         outerR: 0.72,
         innerR: 0.3,
         className:
           "emotion-constellation-star is-active" + (isPrimary ? " is-primary" : ""),
-        label: label,
+        label: emotionModeLabel(key),
       });
       controller.emotionConstellationStars.appendChild(star);
     }
@@ -312,15 +318,15 @@ function renderNearestEmotionMarkers(controller, nearest) {
   if (controller.emotionModeLayer) {
     controller.emotionModeLayer.innerHTML = "";
     controller.emotionModeLayer.removeAttribute("hidden");
-    for (const label of nearest) {
-      const pos = controller.emotionModePositions.get(label);
+    for (const key of nearest) {
+      const pos = controller.emotionModePositions.get(key);
       if (!pos) continue;
       const el = document.createElement("span");
       el.className = "emotion-mode-tag is-active";
-      if (label === nearest[0]) {
+      if (key === nearest[0]) {
         el.classList.add("is-primary");
       }
-      el.textContent = label;
+      el.textContent = emotionModeLabel(key);
       el.style.left = `${pos.mapLeft.toFixed(2)}%`;
       el.style.top = `${pos.mapTop.toFixed(2)}%`;
       controller.emotionModeLayer.appendChild(el);
@@ -474,7 +480,8 @@ function setMapQuadrantTheme(controller, name) {
 
 /** Update the primary focus/relax score card above the map. */
 function updateArousalSummary(controller, arousal) {
-  const primaryLabel = arousal >= 0 ? "Focus score" : "Relax score";
+  const primaryLabel =
+    arousal >= 0 ? t("wizard.results.focusScore") : t("wizard.results.relaxScore");
   const primaryMagnitude = Math.abs(arousal);
   if (controller.emotionPrimaryLabel) controller.emotionPrimaryLabel.textContent = primaryLabel;
   if (controller.emotionPrimaryValue) {
@@ -514,7 +521,7 @@ function updateBeforeAfterComparison(controller) {
   if (baseline == null || post == null) {
     if (controller.emotionArousalDeltaHint) {
       controller.emotionArousalDeltaHint.textContent =
-        "Complete both face scans to see baseline vs after-music change.";
+        t("wizard.results.completeBothScans");
     }
     return;
   }
@@ -523,13 +530,13 @@ function updateBeforeAfterComparison(controller) {
   if (controller.emotionArousalDeltaHint) {
     if (Math.abs(delta) < 1) {
       controller.emotionArousalDeltaHint.textContent =
-        "Your activation level stayed almost unchanged after music.";
+        t("wizard.results.activationUnchanged");
     } else if (delta > 0) {
       controller.emotionArousalDeltaHint.textContent =
-        "Your after-music face scan shows higher activation than baseline.";
+        t("wizard.results.activationHigher");
     } else {
       controller.emotionArousalDeltaHint.textContent =
-        "Your after-music face scan shows lower activation than baseline.";
+        t("wizard.results.activationLower");
     }
   }
 }
@@ -572,7 +579,9 @@ function updateMapAndGuides(controller, valence, arousal, mapLeft, mapTop) {
  * @param {number} valence
  */
 function renderWithoutArousal(controller, valence) {
-  if (controller.emotionPrimaryLabel) controller.emotionPrimaryLabel.textContent = "Arousal score";
+  if (controller.emotionPrimaryLabel) {
+    controller.emotionPrimaryLabel.textContent = t("wizard.results.arousalScore");
+  }
   if (controller.emotionPrimaryValue) controller.emotionPrimaryValue.textContent = "—";
   if (controller.emotionMapPoint) {
     const fallbackLeft = clampPlotPercent(((valence + 100) / 200) * 100);

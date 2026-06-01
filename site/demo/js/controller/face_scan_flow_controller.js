@@ -8,6 +8,7 @@ import { FaceScanCameraController } from "./face_scan_camera_controller.js";
 import { FaceScanRecordingController } from "./face_scan_recording_controller.js";
 import { FaceScanUpload } from "../service/service.js";
 import { stopMusicPlayback } from "./music_stream_controller.js";
+import { t } from "../i18n/index.js";
 
 /** Fade out background music when face recording finishes (blob ready), not when starting the camera. */
 var MUSIC_FADE_MS_AFTER_RECORDING_COMPLETE = 5000;
@@ -172,14 +173,14 @@ function syncScanHudFromPlacement() {
   if (isBad && placementText) {
     setScanOverlayTip(placementText);
   } else if (phase === "record" && isGood) {
-    setScanOverlayTip("Great framing. Keep your face centered and steady.");
+    setScanOverlayTip(t("faceScan.hud.greatFraming"));
   }
 
   if (phase === "record" && isGood) {
     setScanHudQuality(
       5,
-      "Great signal. Keep your face steady and centered.",
-      "Measuring…",
+      t("faceScan.hud.greatSignal"),
+      t("faceScan.hud.measuring"),
       168,
     );
     return;
@@ -188,8 +189,8 @@ function syncScanHudFromPlacement() {
   if (isGood) {
     setScanHudQuality(
       4,
-      "Alignment looks good. Hold still for auto start.",
-      "Almost ready…",
+      t("faceScan.hud.alignmentGood"),
+      t("faceScan.hud.almostReady"),
       132,
     );
     return;
@@ -198,8 +199,8 @@ function syncScanHudFromPlacement() {
   if (isBad) {
     setScanHudQuality(
       2,
-      "Move into frame and keep your face centered.",
-      "Adjusting position…",
+      t("faceScan.hud.moveIntoFrame"),
+      t("faceScan.hud.adjustingPosition"),
       58,
     );
     return;
@@ -207,8 +208,8 @@ function syncScanHudFromPlacement() {
 
   setScanHudQuality(
     3,
-    "Hold still, keep steady lighting, and center your face.",
-    "Preparing…",
+    t("faceScan.hud.defaultText"),
+    t("faceScan.hud.preparing"),
     84,
   );
 }
@@ -300,8 +301,7 @@ function bootstrapModels() {
 
   var kind = String(FaceScanFaceModel.getConfig().kind || "tiny").toLowerCase();
   if (kind === "none" || kind === "off") {
-    cameraDOM.modelsStatus.textContent =
-      "Face detector off — camera runs without alignment or face-based pause.";
+    cameraDOM.modelsStatus.textContent = t("faceScan.models.off");
     cameraDOM.modelsStatus.classList.remove("hint", "failed");
     cameraDOM.modelsStatus.classList.add("hint", "ready");
     faceModelsReady = true;
@@ -313,8 +313,7 @@ function bootstrapModels() {
   }
 
   if (typeof faceapi === "undefined") {
-    cameraDOM.modelsStatus.textContent =
-      "face-api library failed (network / blocked script).";
+    cameraDOM.modelsStatus.textContent = t("faceScan.models.libraryFailed");
     cameraDOM.modelsStatus.classList.add("failed");
     faceModelsLoadFailed = true;
     syncStartButtonAvailability();
@@ -325,7 +324,7 @@ function bootstrapModels() {
   modelsLoadPromise = FaceScanFaceModel.load()
     .then(function () {
       return warmupDetector().then(function () {
-        cameraDOM.modelsStatus.textContent = "Face detector ready.";
+        cameraDOM.modelsStatus.textContent = t("faceScan.models.ready");
         cameraDOM.modelsStatus.classList.remove("hint", "failed");
         cameraDOM.modelsStatus.classList.add("hint", "ready");
         faceModelsReady = true;
@@ -335,8 +334,7 @@ function bootstrapModels() {
       });
     })
     .catch(function () {
-      cameraDOM.modelsStatus.textContent =
-        "Detector models unavailable (CDN + ./models fallback).";
+      cameraDOM.modelsStatus.textContent = t("faceScan.models.unavailable");
       cameraDOM.modelsStatus.classList.add("failed");
       faceModelsLoadFailed = true;
       faceModelsReady = false;
@@ -366,9 +364,7 @@ function openScanPanelAndRequestCamera(camera) {
  */
 function startCameraFromIntro(camera) {
   if (!hasFaceScanConsent()) {
-    showError(
-      "Please provide consent before starting face scan. We use the video to calculate arousal score and then discard it.",
-    );
+    showError(t("faceScan.errors.consentBeforeScan"));
     if (cameraDOM.faceConsentCheckbox) cameraDOM.faceConsentCheckbox.focus();
     syncStartButtonAvailability();
     return;
@@ -399,25 +395,22 @@ export function autoStartFaceScanDirectly() {
 function waitForModelsThenOpenCamera(camera) {
   cameraDOM.scanOverlayCamera.classList.remove("hidden");
   cameraDOM.scanOverlayDenied.classList.add("hidden");
-  cameraDOM.scanOverlayCameraText.textContent = "Preparing face scan…";
+  cameraDOM.scanOverlayCameraText.textContent = t("faceScan.overlay.preparingScan");
   setScanOverlayStage("model");
-  setScanOverlayTip(
-    "Finalizing detector startup. This is done once and usually takes a few seconds.",
-  );
+  setScanOverlayTip(t("faceScan.overlay.finalizingDetector"));
 
   if (faceModelsLoadFailed) {
     cameraDOM.scanOverlayCamera.classList.add("hidden");
     cameraDOM.scanOverlayDenied.classList.remove("hidden");
-    cameraDOM.scanOverlayDeniedText.textContent =
-      "Face detector failed to load. Check network or the models folder, refresh, retry.";
+    cameraDOM.scanOverlayDeniedText.textContent = t("faceScan.models.loadFailed");
     syncStartButtonAvailability();
     return;
   }
 
   if (faceModelsReady) {
-    cameraDOM.scanOverlayCameraText.textContent = "Requesting camera access…";
+    cameraDOM.scanOverlayCameraText.textContent = t("faceScan.overlay.requestingAccess");
     setScanOverlayStage("camera");
-    setScanOverlayTip("Please allow camera access when your browser asks.");
+    setScanOverlayTip(t("faceScan.overlay.allowCameraTip"));
     if (camera) camera.requestCameraAndStartAlignment();
     return;
   }
@@ -427,16 +420,15 @@ function waitForModelsThenOpenCamera(camera) {
       if (faceModelsLoadFailed) {
         throw new Error("face_models_failed");
       }
-      cameraDOM.scanOverlayCameraText.textContent = "Requesting camera access…";
+      cameraDOM.scanOverlayCameraText.textContent = t("faceScan.overlay.requestingAccess");
       setScanOverlayStage("camera");
-      setScanOverlayTip("Please allow camera access when your browser asks.");
+      setScanOverlayTip(t("faceScan.overlay.allowCameraTip"));
       if (camera) camera.requestCameraAndStartAlignment();
     })
     .catch(function () {
       cameraDOM.scanOverlayCamera.classList.add("hidden");
       cameraDOM.scanOverlayDenied.classList.remove("hidden");
-      cameraDOM.scanOverlayDeniedText.textContent =
-        "Face detector failed to load. Check network or the models folder, refresh, retry.";
+      cameraDOM.scanOverlayDeniedText.textContent = t("faceScan.models.loadFailed");
       syncStartButtonAvailability();
     });
 }
@@ -450,16 +442,14 @@ function waitForModelsThenOpenCamera(camera) {
 function applyRecordingOutcomeHint(baseTxt, uploadResult, endpointConfigured) {
   var parts = [baseTxt + "."];
   if (!endpointConfigured) {
-    showError(
-      "Upload URL is not configured. Set meta face-scan-upload-url or MAIKA_FACE_SCAN_UPLOAD_URL (see README).",
-    );
-    parts.push("Set the upload URL, then refresh the page to try again.");
+    showError(t("faceScan.upload.urlNotConfigured"));
+    parts.push(t("faceScan.upload.setUrlHint"));
     cameraDOM.mimeHint.textContent = parts.join(" ");
     return;
   }
   if (uploadResult.ok) {
     hideError();
-    parts.push("Upload to your API completed successfully.");
+    parts.push(t("faceScan.upload.completedSuccess"));
     cameraDOM.mimeHint.textContent = parts.join(" ");
     return;
   }
@@ -467,33 +457,28 @@ function applyRecordingOutcomeHint(baseTxt, uploadResult, endpointConfigured) {
     var timeoutSec = Math.round(
       ((FaceScanUpload && FaceScanUpload.timeoutMs) || 120000) / 1000,
     );
-    showError(
-      "Upload timed out after " +
-        timeoutSec +
-        "s. Try again or increase FaceScanUpload.timeoutMs in service.js.",
-    );
+    showError(t("faceScan.upload.timedOutAfter", { seconds: timeoutSec }));
   } else if (uploadResult.netError) {
     showError(
       (uploadResult.errorMessage ? uploadResult.errorMessage + " " : "") +
-        "If this persists, confirm the API allows this origin (CORS) and that you are on HTTPS or localhost.",
+        t("faceScan.upload.corsHint"),
     );
   } else {
     var serverHint = uploadResult.errorMessage
       ? " " + uploadResult.errorMessage
       : "";
     showError(
-      "Upload rejected (HTTP " +
-        uploadResult.status +
-        ")." +
-        serverHint +
-        ' Check server logs and multipart field "' +
-        (FaceScanUpload && FaceScanUpload.fieldName
-          ? FaceScanUpload.fieldName
-          : "video") +
-        '".',
+      t("faceScan.upload.rejectedHttpDetail", {
+        status: uploadResult.status,
+        serverHint: serverHint,
+        fieldName:
+          FaceScanUpload && FaceScanUpload.fieldName
+            ? FaceScanUpload.fieldName
+            : "video",
+      }),
     );
   }
-  parts.push("Refresh the page to retry when the issue is resolved.");
+  parts.push(t("faceScan.upload.refreshRetry"));
   cameraDOM.mimeHint.textContent = parts.join(" ");
 }
 
@@ -543,9 +528,7 @@ function resetUiToStart(camera, recording) {
   cameraDOM.overlayCountdown.classList.add("hidden");
   hideError();
   setScanOverlayStage("model");
-  setScanOverlayTip(
-    "We are preparing the detector in the background for a smoother start.",
-  );
+  setScanOverlayTip(t("faceScan.overlay.preparingDetector"));
   syncStartButtonAvailability();
   document.dispatchEvent(new CustomEvent("maika-demo:face-scan-blob-cleared"));
 }
@@ -612,7 +595,7 @@ function createRecordingController(getCamera, onResetUi) {
         );
         if (cameraDOM.mimeHint) {
           cameraDOM.mimeHint.textContent =
-            baseTxt + "Upload and score calculation start automatically.";
+            baseTxt + t("faceScan.upload.startsAutomatically");
         }
       },
     },
@@ -651,13 +634,11 @@ function createCameraController(recording) {
       hideError: hideError,
       onCameraReady: function () {
         setScanOverlayStage("align");
-        setScanOverlayTip(
-          "Center your face in the guide. We start automatically once alignment is stable.",
-        );
+        setScanOverlayTip(t("faceScan.hud.centerInGuide"));
       },
       onCountdownDone: function () {
         setScanOverlayStage("align");
-        setScanOverlayTip("Perfect alignment. Starting recording now…");
+        setScanOverlayTip(t("faceScan.hud.perfectAlignment"));
         if (!recording) return Promise.resolve();
         return recording.beginRecording();
       },

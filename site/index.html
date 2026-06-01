@@ -104,7 +104,7 @@
               ><span data-i18n="nav.brandTagline">AI music for your health</span></span
             >
           </a>
-          <nav class="nav-links" aria-label="Primary">
+          <nav class="nav-links" data-i18n-aria-label="nav.primaryAria" aria-label="Primary">
             <a data-nav-link href="/" data-i18n="nav.demo">Demo</a>
           </nav>
         </div>
@@ -297,6 +297,7 @@
                   <div
                     class="music-player__deck"
                     id="music-player-deck"
+                    data-i18n-aria-label="music.playbackAria"
                     aria-label="Music playback"
                   >
                     <div class="music-player__banner">
@@ -306,6 +307,7 @@
                             class="music-player__playfab"
                             id="play-pause-btn"
                             type="button"
+                            data-i18n-aria-label="music.playPauseAria"
                             aria-label="Play or pause"
                             disabled
                           >
@@ -333,7 +335,7 @@
                           </div>
                         </div>
                         <div class="song-info">
-                          <h2 class="song-info__title" id="title">Song Title</h2>
+                          <h2 class="song-info__title" id="title" data-i18n="music.defaultTitle">Song Title</h2>
                           <p class="song-info__artist" id="artist" hidden></p>
                           <div class="song-info__genres" id="genre-tags" hidden></div>
                         </div>
@@ -353,7 +355,7 @@
                             class="music-player__wave-spinner"
                             aria-hidden="true"
                           ></span>
-                          <span class="music-player__wave-loading-text"
+                          <span class="music-player__wave-loading-text" data-i18n="music.loadingAudio"
                             >Loading audio…</span
                           >
                         </div>
@@ -363,6 +365,7 @@
                           width="1200"
                           height="160"
                           role="img"
+                          data-i18n-aria-label="music.spectrumAria"
                           aria-label="Live frequency spectrum"
                         ></canvas>
                       </div>
@@ -374,7 +377,7 @@
                         >
                       </div>
                       <div class="music-player__volume-inline">
-                        <span class="music-player__volume-label" aria-hidden="true">Volume</span>
+                        <span class="music-player__volume-label" aria-hidden="true" data-i18n="music.volume">Volume</span>
                         <input
                           class="music-player__range music-player__range--volume"
                           type="range"
@@ -383,6 +386,7 @@
                           max="1"
                           step="0.1"
                           value="1"
+                          data-i18n-aria-label="music.volumeAria"
                           aria-label="Volume"
                         />
                       </div>
@@ -397,12 +401,14 @@
                         max="100"
                         value="0"
                         tabindex="-1"
+                        data-i18n-aria-label="music.positionAria"
                         aria-label="Playback position"
                       />
                       <button
                         class="music-player__ctrl-btn"
                         id="prev-btn"
                         type="button"
+                        data-i18n-aria-label="music.prevAria"
                         aria-label="Previous track"
                       >
                         ⏮
@@ -411,6 +417,7 @@
                         class="music-player__ctrl-btn"
                         id="rewind-btn"
                         type="button"
+                        data-i18n-aria-label="music.rewindAria"
                         aria-label="Rewind 10 seconds"
                       >
                         −10s
@@ -419,6 +426,7 @@
                         class="music-player__ctrl-btn"
                         id="forward-btn"
                         type="button"
+                        data-i18n-aria-label="music.forwardAria"
                         aria-label="Forward 10 seconds"
                       >
                         +10s
@@ -427,6 +435,7 @@
                         class="music-player__ctrl-btn"
                         id="next-btn"
                         type="button"
+                        data-i18n-aria-label="music.nextAria"
                         aria-label="Next track"
                       >
                         ⏭
@@ -446,7 +455,7 @@
                 >
                   <div class="app">
                     <header class="header">
-                      <h2 id="face-scan-title">Face scan</h2>
+                      <h2 id="face-scan-title" data-i18n="wizard.faceScan.postTitle">Face scan</h2>
                       <p class="muted block face-scan-context" id="face-scan-subtitle" hidden></p>
                     </header>
 
@@ -454,17 +463,18 @@
                     <section
                       class="panel instructions"
                       id="panel-instructions"
+                      data-i18n-aria-label="faceScan.howToRecordAria"
                       aria-label="How to record"
                     >
-                      <h2>Before you start</h2>
+                      <h2 data-i18n="faceScan.beforeStartTitle">Before you start</h2>
                       <ul>
-                        <li>Good, even lighting; camera at eye level; stay still and avoid talking while recording.</li>
-                        <li>Tap <strong>Start camera</strong> when you are ready</li>
+                        <li data-i18n="faceScan.beforeStartLighting">Good, even lighting; camera at eye level; stay still and avoid talking while recording.</li>
+                        <li data-i18n="faceScan.beforeStartTap">Tap Start camera when you are ready</li>
                       </ul>
-                      <p class="hint" id="models-status">
+                      <p class="hint" id="models-status" data-i18n="faceScan.loadingDetector">
                         Loading face detector…
                       </p>
-                      <button type="button" class="btn primary" id="btn-start">
+                      <button type="button" class="btn primary" id="btn-start" data-i18n="faceScan.startCamera">
                         Start camera
                       </button>
                       <!-- <p class="hint">
@@ -478,12 +488,12 @@
                         class="scan-intro-instructions"
                         id="scan-intro-instructions"
                       >
-                        <h2 class="scan-intro-title">What to do</h2>
+                        <h2 class="scan-intro-title" data-i18n="wizard.faceScan.scanIntroTitle">What to do</h2>
                         <ul class="scan-intro-list">
-                          <li>Allow the camera when your browser prompts you.</li>
-                          <li>Center your face in the camera view until the status line turns green.</li>
-                          <li>If you move out of the target area, recording pauses until you move back.</li>
-                          <li>Hold steady—recording starts automatically after a short countdown.</li>
+                          <li data-i18n="wizard.faceScan.instructions.allowCamera">Allow the camera when your browser prompts you.</li>
+                          <li data-i18n="wizard.faceScan.instructions.centerFace">Center your face in the camera view until the status line turns green.</li>
+                          <li data-i18n="wizard.faceScan.instructions.pauseWhenOut">If you move out of the target area, recording pauses until you move back.</li>
+                          <li data-i18n="wizard.faceScan.instructions.holdSteady">Hold steady—recording starts automatically after a short countdown.</li>
                         </ul>
                       </div>
                       <div
@@ -491,8 +501,8 @@
                         id="face-scan-valence-panel"
                         aria-hidden="true"
                       >
-                        <h3 class="valence-title">How do you feel right now?</h3>
-                        <p class="valence-copy">
+                        <h3 class="valence-title" data-i18n="valence.title">How do you feel right now?</h3>
+                        <p class="valence-copy" data-i18n="valence.copy">
                           Move the slider while you record: left is more unpleasant, right is more pleasant.
                         </p>
                         <div class="valence-mood" aria-hidden="true">
@@ -509,14 +519,15 @@
                           max="100"
                           step="1"
                           value="0"
+                          data-i18n-aria-label="valence.sliderAria"
                           aria-label="Valence score from negative to positive"
                         />
                         <div class="valence-ticks" aria-hidden="true">
-                          <span>Negative</span>
-                          <span>Neutral</span>
-                          <span>Positive</span>
+                          <span data-i18n="wizard.results.valenceNegative">Negative</span>
+                          <span data-i18n="wizard.results.valenceNeutral">Neutral</span>
+                          <span data-i18n="wizard.results.valencePositive">Positive</span>
                         </div>
-                        <p class="valence-hint" id="valence-hint">Neutral</p>
+                        <p class="valence-hint" id="valence-hint" data-i18n="valence.neutral">Neutral</p>
                       </div>
                     </div>
 
@@ -524,19 +535,21 @@
                     <section
                       class="panel scan hidden"
                       id="panel-scan"
+                      data-i18n-aria-label="faceScan.recordingAria"
                       aria-label="Face recording"
                     >
-                      <p class="step-label">Face scan</p>
+                      <p class="step-label" data-i18n="faceScan.stepLabel">Face scan</p>
                       <div class="video-wrap" id="video-wrap">
                         <div
                           class="scan-overlay hidden"
                           id="scan-overlay-camera"
                           aria-live="polite"
                         >
-                          <p class="scan-overlay-title">Starting camera</p>
+                          <p class="scan-overlay-title" data-i18n="faceScan.overlay.startingCamera">Starting camera</p>
                           <p
                             class="scan-overlay-body"
                             id="scan-overlay-camera-text"
+                            data-i18n="faceScan.overlay.requestingPermission"
                           >
                             Requesting permission…
                           </p>
@@ -548,17 +561,17 @@
                             <span></span><span></span><span></span>
                           </div>
                           <div class="scan-overlay-stages" aria-hidden="true">
-                            <span class="scan-stage" id="scan-stage-model"
+                            <span class="scan-stage" id="scan-stage-model" data-i18n="faceScan.overlay.model"
                               >Model</span
                             >
-                            <span class="scan-stage" id="scan-stage-camera"
+                            <span class="scan-stage" id="scan-stage-camera" data-i18n="faceScan.overlay.camera"
                               >Camera</span
                             >
-                            <span class="scan-stage" id="scan-stage-align"
+                            <span class="scan-stage" id="scan-stage-align" data-i18n="faceScan.overlay.alignment"
                               >Alignment</span
                             >
                           </div>
-                          <p class="scan-overlay-tip" id="scan-overlay-tip">
+                          <p class="scan-overlay-tip" id="scan-overlay-tip" data-i18n="faceScan.overlay.preparingDetector">
                             We are preparing the detector in the background for
                             a smoother start.
                           </p>
@@ -575,7 +588,7 @@
                           aria-modal="false"
                           aria-labelledby="scan-denied-title"
                         >
-                          <p class="scan-overlay-title" id="scan-denied-title">
+                          <p class="scan-overlay-title" id="scan-denied-title" data-i18n="faceScan.overlay.cantUseCamera">
                             Can't use the camera
                           </p>
                           <p
@@ -587,6 +600,7 @@
                               type="button"
                               class="btn primary"
                               id="btn-camera-retry"
+                              data-i18n="faceScan.tryAgain"
                             >
                               Try again
                             </button>
@@ -594,6 +608,7 @@
                               type="button"
                               class="btn"
                               id="btn-camera-back"
+                              data-i18n="wizard.back"
                             >
                               Back
                             </button>
@@ -634,12 +649,12 @@
                         <div class="chrome-overlay" id="chrome-overlay">
                           <div class="scan-hud" aria-hidden="true">
                             <div class="scan-hud-top">
-                              <p class="scan-hud-kicker">Measurement quality</p>
+                              <p class="scan-hud-kicker" data-i18n="faceScan.hud.qualityKicker">Measurement quality</p>
                               <div class="scan-hud-stars" id="scan-hud-stars">
                                 <span>★</span><span>★</span><span>★</span
                                 ><span>★</span><span>★</span>
                               </div>
-                              <p class="scan-hud-text" id="scan-hud-text">
+                              <p class="scan-hud-text" id="scan-hud-text" data-i18n="faceScan.hud.defaultText">
                                 Hold still, keep steady lighting, and center
                                 your face.
                               </p>
@@ -657,7 +672,7 @@
                                 ></div>
                               </div>
                             </div>
-                            <p class="scan-hud-bottom" id="scan-hud-bottom">
+                            <p class="scan-hud-bottom" id="scan-hud-bottom" data-i18n="faceScan.hud.preparing">
                               Preparing…
                             </p>
                           </div>
@@ -665,6 +680,7 @@
                             class="placement-status"
                             id="placement-status"
                             aria-live="polite"
+                            data-i18n="faceScan.placement.lookingForFace"
                           >
                             Looking for your face…
                           </p>
@@ -689,7 +705,7 @@
                         </div>
                       </div>
                       <div class="actions">
-                        <button type="button" class="btn" id="btn-cancel">
+                        <button type="button" class="btn" id="btn-cancel" data-i18n="faceScan.cancel">
                           Cancel
                         </button>
                       </div>
@@ -699,14 +715,15 @@
                     <section
                       class="panel result hidden"
                       id="panel-result"
+                      data-i18n-aria-label="faceScan.recordingCompleteAria"
                       aria-label="Recording complete"
                     >
-                      <p class="success">Recording finished.</p>
+                      <p class="success" data-i18n="faceScan.recordingFinished">Recording finished.</p>
                       <div
                         class="upload-preview-card hidden"
                         id="upload-preview-card"
                       >
-                        <p class="upload-preview-title">
+                        <p class="upload-preview-title" data-i18n="faceScan.previewTitle">
                           Recorded video preview
                         </p>
                         <video
@@ -725,6 +742,7 @@
                             <span
                               class="upload-status-label"
                               id="upload-status-label"
+                              data-i18n="faceScan.upload.statusIdle"
                               >Ready to upload and calculate score</span
                             >
                           </div>
@@ -744,6 +762,7 @@
                           type="button"
                           class="btn hidden"
                           id="btn-record-again"
+                          data-i18n="faceScan.recordAgain"
                         >
                           Record again
                         </button>
@@ -759,7 +778,7 @@
               <section class="wizard-step" data-step="4" aria-hidden="true">
                 <div class="emotion-card">
                   <div class="emotion-header">
-                    <h3 class="emotion-title">Your Session Result</h3>
+                    <h3 class="emotion-title" data-i18n="wizard.results.title">Your Session Result</h3>
                   </div>
 
                   <div class="emotion-summary">
@@ -767,6 +786,7 @@
                       <p
                         class="emotion-primary-label"
                         id="emotion-primary-label"
+                        data-i18n="wizard.results.focusScore"
                       >
                         Focus score
                       </p>
@@ -781,14 +801,15 @@
 
                   <section
                     class="emotion-compare"
+                    data-i18n-aria-label="wizard.results.compareAria"
                     aria-label="Before and after face scan comparison"
                   >
                     <div class="emotion-compare__head">
-                      <h4>Activation</h4>
+                      <h4 data-i18n="wizard.results.activation">Activation</h4>
                     </div>
                     <div class="emotion-compare__row">
                       <div class="emotion-compare__label-row">
-                        <span>Before music</span>
+                        <span data-i18n="wizard.results.beforeMusic">Before music</span>
                         <strong id="emotion-baseline-arousal-label">—</strong>
                       </div>
                       <div class="emotion-compare__track">
@@ -800,7 +821,7 @@
                     </div>
                     <div class="emotion-compare__row">
                       <div class="emotion-compare__label-row">
-                        <span>After music</span>
+                        <span data-i18n="wizard.results.afterMusic">After music</span>
                         <strong id="emotion-post-arousal-label">—</strong>
                       </div>
                       <div class="emotion-compare__track">
@@ -817,6 +838,7 @@
                       class="emotion-map"
                       id="emotion-map"
                       role="img"
+                      data-i18n-aria-label="wizard.results.mapAria"
                       aria-label="Emotion constellation with valence on x-axis and arousal on y-axis"
                     >
                       <svg
@@ -844,10 +866,10 @@
                       <div class="emotion-axis axis-x"></div>
                       <div class="emotion-axis axis-y"></div>
                       <div class="emotion-center-dot" aria-hidden="true"></div>
-                      <span class="emotion-axis-label axis-top"
+                      <span class="emotion-axis-label axis-top" data-i18n="wizard.results.activationAxis"
                         >Activation</span
                       >
-                      <span class="emotion-axis-label axis-bottom"
+                      <span class="emotion-axis-label axis-bottom" data-i18n="wizard.results.relaxationAxis"
                         >Relaxation</span
                       >
                       <div

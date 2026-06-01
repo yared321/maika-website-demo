@@ -193,7 +193,7 @@ function createInitialState(stepCount) {
     },
     emotionViz: {
       xAxisValencePercent: VALENCE_X_AXIS_DEFAULT,
-      xAxisValenceLabel: "Neutral",
+      xAxisValenceLabel: t("valence.neutral"),
       xAxisValenceEmoji: "😐",
       postScanValenceConfirmed: false,
     },
