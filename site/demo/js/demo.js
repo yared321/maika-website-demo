@@ -1,3 +1,4 @@
+import { initI18n, resolveLocale, t } from "./i18n/index.js";
 import {
   fetchMusicData,
   MUSIC_PROGRESS_EVENT,
@@ -43,6 +44,11 @@ const MUSIC_DEFAULT_DURATION_SECONDS = 120;
 const AUTO_ADVANCE_STEPS = new Set([2]);
 
 try {
+  await initI18n(resolveLocale());
+} catch (_error) {
+}
+
+try {
   await fetchMusicData();
 } catch (_error) {
 }
@@ -80,14 +86,14 @@ function startDemoFromLanding(dom, state, updateStep) {
   setLandingError(dom, "");
 
   if (!dom.faceConsentCheckbox?.checked) {
-    setLandingError(dom, "Please agree to the camera consent before starting.");
+    setLandingError(dom, t("errors.consentRequired"));
     dom.faceConsentCheckbox?.focus();
     return;
   }
 
   const genre = String(dom.landingGenreSelect?.value || "").trim();
   if (!genre) {
-    setLandingError(dom, "Choose a music genre to continue.");
+    setLandingError(dom, t("errors.genreRequired"));
     dom.landingGenreSelect?.focus();
     return;
   }
@@ -202,9 +208,9 @@ function createInitialState(stepCount) {
       durationSeconds: MUSIC_DEFAULT_DURATION_SECONDS,
     },
     nextButtonLabels: new Map([
-      [0, "Continue"],
-      [1, "Proceed to face scan"],
-      [3, "Done"],
+      [0, t("wizard.nextContinue")],
+      [1, t("wizard.nextProceedFaceScan")],
+      [3, t("wizard.nextDone")],
     ]),
   };
   applyDefaultDemographics(state);
@@ -436,7 +442,7 @@ function updateStep(dom, state, targetStep, options = {}) {
   if (dom.stepCurrent) dom.stepCurrent.textContent = String(state.currentStep + 1);
   setWizardError(dom, "");
   if (dom.nextButton) {
-    dom.nextButton.textContent = state.nextButtonLabels.get(targetStep) ?? "Next";
+    dom.nextButton.textContent = state.nextButtonLabels.get(targetStep) ?? t("wizard.next");
     dom.nextButton.hidden = AUTO_ADVANCE_STEPS.has(targetStep);
   }
   if (dom.backButton) {
@@ -466,17 +472,15 @@ function moveFaceScanApp(dom, targetHost) {
 
   if (dom.faceScanTitle) {
     if (targetHost === "pre") {
-      dom.faceScanTitle.textContent = "Baseline face scan";
+      dom.faceScanTitle.textContent = t("wizard.faceScan.baselineTitle");
       if (dom.faceScanSubtitle) {
-        dom.faceScanSubtitle.textContent =
-          "Your baseline scan before listening to music.";
+        dom.faceScanSubtitle.textContent = t("wizard.faceScan.baselineSubtitle");
         dom.faceScanSubtitle.hidden = false;
       }
     } else {
-      dom.faceScanTitle.textContent = "Face scan";
+      dom.faceScanTitle.textContent = t("wizard.faceScan.postTitle");
       if (dom.faceScanSubtitle) {
-        dom.faceScanSubtitle.textContent =
-          "Scan again after listening to music.";
+        dom.faceScanSubtitle.textContent = t("wizard.faceScan.postSubtitle");
         dom.faceScanSubtitle.hidden = false;
       }
     }
@@ -521,20 +525,20 @@ function validateCurrentStep(dom, state) {
 
 async function handleNextClick(dom, state, controllers) {
   if (!validateCurrentStep(dom, state)) {
-    setWizardError(dom, "Please complete this step before continuing.");
+    setWizardError(dom, t("errors.stepIncomplete"));
     return;
   }
 
   if (state.currentStep === 0) {
     if (state.upload.isInFlight) {
-      setWizardError(dom, "Uploading video and calculating score. Please wait.");
+      setWizardError(dom, t("errors.uploadInProgress"));
       return;
     }
     if (state.upload.completed) {
       updateStep(dom, state, 1, { controllers });
       return;
     }
-    setWizardError(dom, "Complete a face recording first.");
+    setWizardError(dom, t("errors.recordingRequired"));
     return;
   }
 
@@ -546,7 +550,12 @@ async function handleNextClick(dom, state, controllers) {
       );
       setWizardError(
         dom,
-        `Listen for ${remaining} more second${remaining === 1 ? "" : "s"} to continue.`,
+        t(
+          remaining === 1
+            ? "errors.listenRemainingOne"
+            : "errors.listenRemainingMany",
+          { remaining },
+        ),
       );
       return;
     }

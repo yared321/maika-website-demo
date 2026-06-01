@@ -14,14 +14,16 @@
         } catch (_e) {}
       })();
     </script>
-    <title>Maika - AI Music for Your Health</title>
+    <title data-i18n="meta.pageTitle">Maika - AI Music for Your Health</title>
     <meta
       name="description"
+      data-i18n-content="meta.description"
       content="Real-time AI-powered adaptive music that uses biometrics to support stress relief, focus, recovery, and wellbeing."
     />
-    <meta property="og:title" content="Maika - AI Music for Your Health" />
+    <meta property="og:title" data-i18n-content="meta.pageTitle" content="Maika - AI Music for Your Health" />
     <meta
       property="og:description"
+      data-i18n-content="meta.ogDescription"
       content="AI-powered adaptive music for stress relief, focus, and recovery."
     />
     <meta property="og:type" content="website" />
@@ -99,11 +101,11 @@
             />
             <span class="brand-label"
               ><strong>Maika Health</strong
-              ><span>AI music for your health</span></span
+              ><span data-i18n="nav.brandTagline">AI music for your health</span></span
             >
           </a>
           <nav class="nav-links" aria-label="Primary">
-            <a data-nav-link href="/">Demo</a>
+            <a data-nav-link href="/" data-i18n="nav.demo">Demo</a>
           </nav>
         </div>
         <div class="container mobile-menu" data-mobile-menu>
@@ -119,19 +121,20 @@
             class="demo-landing"
             id="demo-landing"
             aria-label="Demo overview"
+            data-i18n-aria-label="landing.ariaLabel"
           >
             <div class="demo-landing__hero">
-              <p class="demo-landing__kicker">Interactive demo</p>
-              <h1 class="demo-landing__title">
+              <p class="demo-landing__kicker" data-i18n="landing.kicker">Interactive demo</p>
+              <h1 class="demo-landing__title" data-i18n="landing.title">
                 Discover your emotional response to music in one guided flow.
               </h1>
-              <p class="demo-landing__copy">
+              <p class="demo-landing__copy" data-i18n="landing.copy">
                 This experience combines music listening, a short face scan, and immediate feedback on your biometric and emotional response to music.
               </p>
               <div class="demo-landing__points" aria-hidden="true">
-                <span>Consent before camera access</span>
-                <span>Auto upload + score processing</span>
-                <span>Result view</span>
+                <span data-i18n="landing.points.consent">Consent before camera access</span>
+                <span data-i18n="landing.points.upload">Auto upload + score processing</span>
+                <span data-i18n="landing.points.result">Result view</span>
               </div>
             </div>
             <div class="demo-landing__row">
@@ -143,8 +146,8 @@
                       <span class="demo-landing__step-connector"></span>
                     </div>
                     <article class="demo-landing__step-card">
-                      <p class="demo-landing__step-title">Step 1</p>
-                      <p class="demo-landing__step-desc">Baseline face scan</p>
+                      <p class="demo-landing__step-title" data-i18n="landing.steps.step1Title">Step 1</p>
+                      <p class="demo-landing__step-desc" data-i18n="landing.steps.step1Desc">Baseline face scan</p>
                     </article>
                   </li>
                   <li class="demo-landing__step">
@@ -153,8 +156,8 @@
                       <span class="demo-landing__step-connector"></span>
                     </div>
                     <article class="demo-landing__step-card">
-                      <p class="demo-landing__step-title">Step 2</p>
-                      <p class="demo-landing__step-desc">Listen</p>
+                      <p class="demo-landing__step-title" data-i18n="landing.steps.step2Title">Step 2</p>
+                      <p class="demo-landing__step-desc" data-i18n="landing.steps.step2Desc">Listen</p>
                     </article>
                   </li>
                   <li class="demo-landing__step">
@@ -163,8 +166,8 @@
                       <span class="demo-landing__step-connector"></span>
                     </div>
                     <article class="demo-landing__step-card">
-                      <p class="demo-landing__step-title">Step 3</p>
-                      <p class="demo-landing__step-desc">Scan your face</p>
+                      <p class="demo-landing__step-title" data-i18n="landing.steps.step3Title">Step 3</p>
+                      <p class="demo-landing__step-desc" data-i18n="landing.steps.step3Desc">Scan your face</p>
                     </article>
                   </li>
                   <li class="demo-landing__step">
@@ -173,54 +176,56 @@
                       <span class="demo-landing__step-connector"></span>
                     </div>
                     <article class="demo-landing__step-card">
-                      <p class="demo-landing__step-title">Step 4</p>
-                      <p class="demo-landing__step-desc">See the result</p>
+                      <p class="demo-landing__step-title" data-i18n="landing.steps.step4Title">Step 4</p>
+                      <p class="demo-landing__step-desc" data-i18n="landing.steps.step4Desc">See the result</p>
                     </article>
                   </li>
                 </ol>
               </div>
               <div class="demo-access-card">
-                <p class="demo-access-card__title">Try the demo</p>
-                <p class="demo-access-card__copy">
+                <p class="demo-access-card__title" data-i18n="landing.access.title">Try the demo</p>
+                <p class="demo-access-card__copy" data-i18n="landing.access.copy">
                   Choose your music and listening time, then start the guided flow.
                 </p>
 
                 <div class="demo-access-card__field">
-                  <label class="demo-access-card__label" for="landing-genre-select">
+                  <label class="demo-access-card__label" for="landing-genre-select" data-i18n="landing.access.genreLabel">
                     Music genre
                   </label>
                   <select
                     id="landing-genre-select"
                     class="demo-access-card__select"
+                    data-i18n-aria-label="landing.access.genreAria"
                     aria-label="Music genre"
                   >
-                    <option value="">Loading genres…</option>
+                    <option value="" data-i18n="landing.access.genreLoading">Loading genres…</option>
                   </select>
                 </div>
 
                 <div class="demo-access-card__field">
-                  <label class="demo-access-card__label" for="landing-duration-select">
+                  <label class="demo-access-card__label" for="landing-duration-select" data-i18n="landing.access.durationLabel">
                     Listening duration
                   </label>
                   <select
                     id="landing-duration-select"
                     class="demo-access-card__select"
+                    data-i18n-aria-label="landing.access.durationAria"
                     aria-label="Listening duration"
                   >
-                    <option value="120" selected>2 minutes</option>
-                    <option value="300">5 minutes</option>
-                    <option value="600">10 minutes</option>
+                    <option value="120" selected data-i18n="landing.access.duration2Min">2 minutes</option>
+                    <option value="300" data-i18n="landing.access.duration5Min">5 minutes</option>
+                    <option value="600" data-i18n="landing.access.duration10Min">10 minutes</option>
                   </select>
                 </div>
 
                 <div class="consent-box demo-access-card__consent" id="landing-consent-box">
                   <label class="consent-check" for="face-consent-checkbox">
                     <input type="checkbox" id="face-consent-checkbox" />
-                    <span>
+                    <span data-i18n="landing.access.consentLabel">
                       I give consent to using my face-scan video to calculate my biometrics.
                     </span>
                   </label>
-                  <p class="hint consent-note">
+                  <p class="hint consent-note" data-i18n="landing.access.consentNote">
                     Your video is used only for your session results and will be discarded right after processing.
                   </p>
                 </div>
@@ -236,6 +241,7 @@
                   id="demo-access-cta"
                   type="button"
                   disabled
+                  data-i18n="landing.access.cta"
                 >
                   Try Demo
                 </button>
@@ -250,7 +256,7 @@
               novalidate
             >
               <div class="wizard-header">
-                <p class="wizard-kicker">Maika demo</p>
+                <p class="wizard-kicker" data-i18n="wizard.kicker">Maika demo</p>
                 <p class="wizard-progress">
                   <span data-step-current>1</span> /
                   <span data-step-total>4</span>
@@ -859,8 +865,8 @@
                       class="emotion-map-valence-legend"
                       aria-hidden="false"
                     >
-                      <span class="emotion-axis-label axis-left">Negative</span>
-                      <span class="emotion-axis-label axis-right"
+                      <span class="emotion-axis-label axis-left" data-i18n="wizard.results.valenceNegative">Negative</span>
+                      <span class="emotion-axis-label axis-right" data-i18n="wizard.results.valencePositive"
                         >Positive</span
                       >
                     </div>
@@ -875,6 +881,7 @@
                   class="btn btn-ghost"
                   type="button"
                   data-action="back"
+                  data-i18n="wizard.back"
                 >
                   Back
                 </button>
@@ -882,6 +889,7 @@
                   class="btn btn-primary"
                   type="button"
                   data-action="next"
+                  data-i18n="wizard.next"
                 >
                   Next
                 </button>

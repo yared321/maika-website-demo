@@ -14,6 +14,7 @@ import {
   startSpectrumRenderLoop,
   stopSpectrumRenderLoop,
 } from "./music_waveform_renderer.js";
+import { t } from "../i18n/index.js";
 
 export const MUSIC_ENDED_EVENT = "maika-demo:music-ended";
 export const MUSIC_PROGRESS_EVENT = "maika-demo:music-progress";
@@ -784,7 +785,7 @@ export function populateLandingGenreSelect(selectEl) {
   if (!genres.length) {
     const empty = document.createElement("option");
     empty.value = "";
-    empty.textContent = "No genres available";
+    empty.textContent = t("landing.access.genreEmpty");
     selectEl.appendChild(empty);
     selectEl.disabled = true;
     return;
