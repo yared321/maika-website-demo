@@ -25,7 +25,31 @@ Static output is in `site/` (`index.html` at the root of that folder).
 
 Do not rewrite `/` to `/demo/index.html` — the app lives at `site/index.html`. After changing `_redirects`, redeploy.
 
-For production face-scan uploads you still need a reverse proxy to `MAIKA_RPPG_UPSTREAM` (see `scripts/README.proxy.md`).
+### Face-scan upload on Cloudflare Pages
+
+The browser posts to `/api/face-assess/v1/web/assess`. Without **Pages Functions**, Cloudflare returns **405** on POST. This repo includes `functions/` for that proxy.
+
+**Deploy via Git** (or `wrangler pages deploy site` from the repo root) so `functions/` is packaged — uploading only the `site/` folder in the dashboard does **not** include functions.
+
+In **Cloudflare Dashboard → Workers & Pages → your project → Settings → Environment variables**, set (Production + Preview):
+
+| Variable | Required | Example |
+|----------|----------|---------|
+| `MAIKA_RPPG_UPSTREAM` | Yes | `https://maika-rppg-web-staging-x4o27bgmjq-oa.a.run.app` |
+| `MAIKA_PUBLIC_KEY` | Yes | your staging public key |
+| `MAIKA_CAPTCHA_TOKEN` | No | leave empty if unused |
+| `CORS_ALLOW_ORIGIN` | No | `*` or your site origin |
+
+Redeploy after adding or changing variables.
+
+**Verify:**
+
+- `GET https://YOUR_SITE/healthz` → `ok`
+- `GET https://YOUR_SITE/api/diag-maika-env` → `"maikaUpstreamConfigured": true`
+
+For local Pages Functions dev: copy `.env.example` to `.dev.vars` in the repo root, then `npx wrangler pages dev site`.
+
+For production face-scan uploads outside Cloudflare, see `scripts/README.proxy.md`.
 
 ## Structure
 
