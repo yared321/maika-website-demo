@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      (function () {
+        try {
+          var p = new URLSearchParams(location.search);
+          var v = String(p.get("embed") || "").toLowerCase();
+          if (v === "1" || v === "true" || v === "yes") {
+            document.documentElement.classList.add("demo-embed");
+          }
+        } catch (_e) {}
+      })();
+    </script>
+    <title>Maika - AI Music for Your Health</title>
+    <meta
+      name="description"
+      content="Real-time AI-powered adaptive music that uses biometrics to support stress relief, focus, recovery, and wellbeing."
+    />
+    <meta property="og:title" content="Maika - AI Music for Your Health" />
+    <meta
+      property="og:description"
+      content="AI-powered adaptive music for stress relief, focus, and recovery."
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:image"
+      content="/assets/images/HMAXl2OBQIIUUaPBbnSBuo5EQYE.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Maika - AI Music for Your Health" />
+    <meta
+      name="twitter:description"
+      content="AI-powered adaptive music for stress relief, focus, and recovery."
+    />
+    <meta
+      name="twitter:image"
+      content="/assets/images/HMAXl2OBQIIUUaPBbnSBuo5EQYE.png"
+    />
+    <meta name="demo-verify-url" content="" />
+    <meta name="turnstile-site-key" content="__TURNSTILE_SITE_KEY__" />
+    <meta name="maika-face-detector-provider" content="mediapipe" />
+    <meta name="maika-mediapipe-model-type" content="landmarker" />
+    <meta
+      name="maika-mediapipe-js-cdn"
+      content="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14"
+    />
+    <meta
+      name="maika-mediapipe-wasm-root"
+      content="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    />
+    <meta
+      name="maika-mediapipe-model-url"
+      content="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+    />
+    <meta name="maika-mediapipe-delegate" content="GPU" />
+    <meta name="maika-mediapipe-min-detection-confidence" content="0.35" />
+    <meta name="maika-face-scan-debug" content="false" />
+    <link
+      rel="icon"
+      href="/assets/images/am47mjWFDKrmVUvpsmW7KI1MFg.jpg"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      href="/assets/images/NXjUGkhb1Qk6O8iTyi1xHE7w.png"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="/assets/images/1ZL40abWJwRaa4sHTEUOzE3Prk.png"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="/demo/css/face_scanner.css?v=20260515-record-again"
+    />
+    <link
+      rel="stylesheet"
+      href="/demo/css/face_scanner_fx.css?v=20260505-split-a"
+    />
+    <link rel="stylesheet" href="/styles.css?v=20260306-teamfix" />
+    <link
+      rel="stylesheet"
+      href="/demo/css/demo_landing.css?v=20260528-static-demo-bg"
+    />
+    <link
+      rel="stylesheet"
+      href="/demo/css/demo_music_player.css?v=20260515-cover-in-art-slot"
+    />
+    <link rel="stylesheet" href="/demo/css/demo.css?v=20260505-wizard-steps" />
+    <link rel="stylesheet" href="/demo/css/demo_embed.css?v=20260601-embed" />
+    <link
+      rel="stylesheet"
+      href="/demo/css/demo_emotion_visualization.css?v=20260528-emotion-stars-float"
+    />
+    <link
+      rel="stylesheet"
+      href="/demo/css/valence_slider.css?v=20260504-valence-refactor"
+    />
+  </head>
+  <body class="home-page">
+    <div class="site-bg" aria-hidden="true"></div>
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="container nav-wrap">
+          <a class="brand" href="/">
+            <img
+              src="/assets/images/fKsR7OficZ8uLdzrI7sGxJIar9M.png"
+              alt="Maika logo"
+            />
+            <span class="brand-label"
+              ><strong>Maika Health</strong
+              ><span>AI music for your health</span></span
+            >
+          </a>
+          <nav class="nav-links" aria-label="Primary">
+            <a data-nav-link href="/">Demo</a>
+          </nav>
+        </div>
+        <div class="container mobile-menu" data-mobile-menu>
+          <a data-nav-link href="/"></a>
+        </div>
+      </header>
+
+      <main>
+        <!-- Hero wrapper section -->
+        <section class="section hero hero-cinematic" data-hero-intro>
+          <!-- Demo landing section -->
+          <section
+            class="demo-landing"
+            id="demo-landing"
+            aria-label="Demo overview"
+          >
+            <div class="demo-landing__hero">
+              <p class="demo-landing__kicker">Interactive demo</p>
+              <h1 class="demo-landing__title">
+                Discover your emotional response to music in one guided flow.
+              </h1>
+              <p class="demo-landing__copy">
+                This experience combines music listening, a short face scan, and immediate feedback on your biometric and emotional response to music.
+              </p>
+              <div class="demo-landing__points" aria-hidden="true">
+                <span>Consent before camera access</span>
+                <span>Auto upload + score processing</span>
+                <span>Result view</span>
+              </div>
+            </div>
+            <div class="demo-landing__row">
+              <div class="demo-landing__steps-panel" aria-hidden="true">
+                <ol class="demo-landing__steps">
+                  <li class="demo-landing__step">
+                    <div class="demo-landing__step-indicator">
+                      <span class="demo-landing__step-index">1</span>
+                      <span class="demo-landing__step-connector"></span>
+                    </div>
+                    <article class="demo-landing__step-card">
+                      <p class="demo-landing__step-title">Step 1</p>
+                      <p class="demo-landing__step-desc">Baseline face scan</p>
+                    </article>
+                  </li>
+                  <li class="demo-landing__step">
+                    <div class="demo-landing__step-indicator">
+                      <span class="demo-landing__step-index">2</span>
+                      <span class="demo-landing__step-connector"></span>
+                    </div>
+                    <article class="demo-landing__step-card">
+                      <p class="demo-landing__step-title">Step 2</p>
+                      <p class="demo-landing__step-desc">Listen</p>
+                    </article>
+                  </li>
+                  <li class="demo-landing__step">
+                    <div class="demo-landing__step-indicator">
+                      <span class="demo-landing__step-index">3</span>
+                      <span class="demo-landing__step-connector"></span>
+                    </div>
+                    <article class="demo-landing__step-card">
+                      <p class="demo-landing__step-title">Step 3</p>
+                      <p class="demo-landing__step-desc">Scan your face</p>
+                    </article>
+                  </li>
+                  <li class="demo-landing__step">
+                    <div class="demo-landing__step-indicator">
+                      <span class="demo-landing__step-index">4</span>
+                      <span class="demo-landing__step-connector"></span>
+                    </div>
+                    <article class="demo-landing__step-card">
+                      <p class="demo-landing__step-title">Step 4</p>
+                      <p class="demo-landing__step-desc">See the result</p>
+                    </article>
+                  </li>
+                </ol>
+              </div>
+              <div class="demo-access-card">
+                <p class="demo-access-card__title">Try the demo</p>
+                <p class="demo-access-card__copy">
+                  Enter your demo access code to continue to the guided flow.
+                </p>
+                <label class="demo-access-card__label" for="demo-access-code">
+                  Access code
+                </label>
+                <input
+                  id="demo-access-code"
+                  class="demo-access-card__input"
+                  type="password"
+                  autocomplete="off"
+                  placeholder="Enter demo code"
+                />
+                <div class="cf-turnstile" data-sitekey=""></div>
+                <p
+                  class="demo-access-card__error hidden"
+                  id="demo-access-error"
+                  aria-live="polite"
+                ></p>
+                <button
+                  class="btn btn-primary demo-access-card__btn"
+                  id="demo-access-cta"
+                  type="button"
+                >
+                  Try Demo
+                </button>
+              </div>
+            </div>
+          </section>
+          <!-- Demo wizard flow section -->
+          <section class="user-input-section hidden" id="demo-flow" hidden>
+            <form
+              class="input-container wizard-form"
+              id="demoWizardForm"
+              novalidate
+            >
+              <div class="wizard-header">
+                <p class="wizard-kicker">Maika demo</p>
+                <p class="wizard-progress">
+                  <span data-step-current>1</span> /
+                  <span data-step-total>4</span>
+                </p>
+              </div>
+              <!-- Baseline face scan -->
+              <section class="wizard-step is-active" data-step="1">
+                <div
+                  class="field-grid field-grid-single"
+                  id="face-scan-host-pre"
+                >
+                </div>
+              </section>
+
+              <!-- Listen to music (track chosen automatically) -->
+              <section class="wizard-step" data-step="2" aria-hidden="true">
+                <div class="music-player">
+                  <select
+                    id="music-select"
+                    class="input-select music-player__select-hidden"
+                    name="music"
+                    hidden
+                    aria-hidden="true"
+                    tabindex="-1"
+                  >
+                    <option value="">—</option>
+                  </select>
+
+                  <audio
+                    id="audio-player"
+                    class="music-player__native"
+                    controls
+                    hidden
+                  >
+                    Your browser does not support the audio element.
+                  </audio>
+
+                  <div
+                    class="music-player__deck"
+                    id="music-player-deck"
+                    aria-label="Music playback"
+                  >
+                    <div class="music-player__banner">
+                      <div class="music-player__banner-left">
+                        <div class="music-player__art-slot" id="music-art-slot">
+                          <button
+                            class="music-player__playfab"
+                            id="play-pause-btn"
+                            type="button"
+                            aria-label="Play or pause"
+                            disabled
+                          >
+                            <span
+                              class="music-player__playfab-icon"
+                              id="play-pause-glyph"
+                              aria-hidden="true"
+                              >▶</span
+                            >
+                          </button>
+                          <div
+                            class="music-player__cover-wrap music-player__cover-wrap--empty"
+                            id="music-cover-wrap"
+                            aria-hidden="true"
+                          >
+                            <img
+                              id="music-cover-art"
+                              class="music-player__cover"
+                              alt=""
+                              width="64"
+                              height="64"
+                              decoding="async"
+                              hidden
+                            />
+                          </div>
+                        </div>
+                        <div class="song-info">
+                          <h2 class="song-info__title" id="title">Song Title</h2>
+                          <p class="song-info__artist" id="artist" hidden></p>
+                          <div class="song-info__genres" id="genre-tags" hidden></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="music-player__wave-panel" id="music-wave-panel">
+                      <div class="music-player__wave-stage">
+                        <div
+                          class="music-player__wave-loading"
+                          id="music-wave-loading"
+                          hidden
+                          aria-live="polite"
+                          aria-busy="false"
+                        >
+                          <span
+                            class="music-player__wave-spinner"
+                            aria-hidden="true"
+                          ></span>
+                          <span class="music-player__wave-loading-text"
+                            >Loading audio…</span
+                          >
+                        </div>
+                        <canvas
+                          id="music-waveform-canvas"
+                          class="music-player__wave-canvas"
+                          width="1200"
+                          height="160"
+                          role="img"
+                          aria-label="Live frequency spectrum"
+                        ></canvas>
+                      </div>
+                      <div class="music-player__wave-foot">
+                        <span
+                          class="music-player__time-tag music-player__time-tag--current"
+                          id="current-time"
+                          >0:00</span
+                        >
+                      </div>
+                      <div class="music-player__volume-inline">
+                        <span class="music-player__volume-label" aria-hidden="true">Volume</span>
+                        <input
+                          class="music-player__range music-player__range--volume"
+                          type="range"
+                          id="volume-slider"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value="1"
+                          aria-label="Volume"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="music-player__ghost-controls" aria-hidden="true">
+                      <input
+                        class="music-player__range music-player__range--progress"
+                        type="range"
+                        id="progress-bar"
+                        min="0"
+                        max="100"
+                        value="0"
+                        tabindex="-1"
+                        aria-label="Playback position"
+                      />
+                      <button
+                        class="music-player__ctrl-btn"
+                        id="prev-btn"
+                        type="button"
+                        aria-label="Previous track"
+                      >
+                        ⏮
+                      </button>
+                      <button
+                        class="music-player__ctrl-btn"
+                        id="rewind-btn"
+                        type="button"
+                        aria-label="Rewind 10 seconds"
+                      >
+                        −10s
+                      </button>
+                      <button
+                        class="music-player__ctrl-btn"
+                        id="forward-btn"
+                        type="button"
+                        aria-label="Forward 10 seconds"
+                      >
+                        +10s
+                      </button>
+                      <button
+                        class="music-player__ctrl-btn"
+                        id="next-btn"
+                        type="button"
+                        aria-label="Next track"
+                      >
+                        ⏭
+                      </button>
+                    </div>
+
+                    <audio id="main-audio" src=""></audio>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Post-music face scan -->
+              <section class="wizard-step" data-step="3" aria-hidden="true">
+                <div
+                  class="field-grid field-grid-single"
+                  id="face-scan-host-post"
+                >
+                  <div class="app">
+                    <header class="header">
+                      <h2 id="face-scan-title">Face scan</h2>
+                      <p class="muted block face-scan-context" id="face-scan-subtitle" hidden></p>
+                    </header>
+
+                    <!-- Face scan instruction panel section -->
+                    <section
+                      class="panel instructions"
+                      id="panel-instructions"
+                      aria-label="How to record"
+                    >
+                      <h2>Before you start</h2>
+                      <ul>
+                        <li>Good, even lighting; camera at eye level; stay still and avoid talking while recording.</li>
+                        <li>Tap <strong>Start camera</strong> when you are ready</li>
+                      </ul>
+                      <div class="consent-box" id="face-consent-box">
+                        <label
+                          class="consent-check"
+                          for="face-consent-checkbox"
+                        >
+                          <input type="checkbox" id="face-consent-checkbox" />
+                          <span>
+                            I give the consent to using my face-scan video to calculate my biometrics.
+                          </span>
+                        </label>
+                        <p class="hint consent-note">
+                          Your video is used only for your session results and will be discarded right after processing.
+                        </p>
+                      </div>
+                      <p class="hint" id="models-status">
+                        Loading face detector…
+                      </p>
+                      <button type="button" class="btn primary" id="btn-start">
+                        Start camera
+                      </button>
+                      <!-- <p class="hint">
+                        Camera access requires <strong>HTTPS</strong> or <strong>http://localhost</strong>; opening the file directly
+                        from disk usually blocks the camera.
+                      </p> -->
+                    </section>
+
+                    <div class="scan-intro card-inset hidden" id="scan-intro">
+                      <div
+                        class="scan-intro-instructions"
+                        id="scan-intro-instructions"
+                      >
+                        <h2 class="scan-intro-title">What to do</h2>
+                        <ul class="scan-intro-list">
+                          <li>Allow the camera when your browser prompts you.</li>
+                          <li>Center your face in the camera view until the status line turns green.</li>
+                          <li>If you move out of the target area, recording pauses until you move back.</li>
+                          <li>Hold steady—recording starts automatically after a short countdown.</li>
+                        </ul>
+                      </div>
+                      <div
+                        class="valence-card valence-card--post-scan hidden"
+                        id="face-scan-valence-panel"
+                        aria-hidden="true"
+                      >
+                        <h3 class="valence-title">How do you feel right now?</h3>
+                        <p class="valence-copy">
+                          Move the slider while you record: left is more unpleasant, right is more pleasant.
+                        </p>
+                        <div class="valence-mood" aria-hidden="true">
+                          <span class="valence-emoji" id="valence-emoji">😐</span>
+                        </div>
+                        <label class="valence-label-row" for="valence-slider">
+                          <strong id="valence-value">0%</strong>
+                        </label>
+                        <input
+                          class="valence-range"
+                          type="range"
+                          id="valence-slider"
+                          min="-100"
+                          max="100"
+                          step="1"
+                          value="0"
+                          aria-label="Valence score from negative to positive"
+                        />
+                        <div class="valence-ticks" aria-hidden="true">
+                          <span>Negative</span>
+                          <span>Neutral</span>
+                          <span>Positive</span>
+                        </div>
+                        <p class="valence-hint" id="valence-hint">Neutral</p>
+                      </div>
+                    </div>
+
+                    <!-- Face scan recording panel section -->
+                    <section
+                      class="panel scan hidden"
+                      id="panel-scan"
+                      aria-label="Face recording"
+                    >
+                      <p class="step-label">Face scan</p>
+                      <div class="video-wrap" id="video-wrap">
+                        <div
+                          class="scan-overlay hidden"
+                          id="scan-overlay-camera"
+                          aria-live="polite"
+                        >
+                          <p class="scan-overlay-title">Starting camera</p>
+                          <p
+                            class="scan-overlay-body"
+                            id="scan-overlay-camera-text"
+                          >
+                            Requesting permission…
+                          </p>
+                          <div
+                            class="scan-overlay-progress"
+                            id="scan-overlay-progress"
+                            aria-hidden="true"
+                          >
+                            <span></span><span></span><span></span>
+                          </div>
+                          <div class="scan-overlay-stages" aria-hidden="true">
+                            <span class="scan-stage" id="scan-stage-model"
+                              >Model</span
+                            >
+                            <span class="scan-stage" id="scan-stage-camera"
+                              >Camera</span
+                            >
+                            <span class="scan-stage" id="scan-stage-align"
+                              >Alignment</span
+                            >
+                          </div>
+                          <p class="scan-overlay-tip" id="scan-overlay-tip">
+                            We are preparing the detector in the background for
+                            a smoother start.
+                          </p>
+                          <div
+                            class="scan-overlay-spinner"
+                            id="scan-overlay-camera-spinner"
+                            aria-hidden="true"
+                          ></div>
+                        </div>
+                        <div
+                          class="scan-overlay overlay-error hidden"
+                          id="scan-overlay-denied"
+                          role="dialog"
+                          aria-modal="false"
+                          aria-labelledby="scan-denied-title"
+                        >
+                          <p class="scan-overlay-title" id="scan-denied-title">
+                            Can't use the camera
+                          </p>
+                          <p
+                            class="scan-overlay-body"
+                            id="scan-overlay-denied-text"
+                          ></p>
+                          <div class="scan-overlay-actions">
+                            <button
+                              type="button"
+                              class="btn primary"
+                              id="btn-camera-retry"
+                            >
+                              Try again
+                            </button>
+                            <button
+                              type="button"
+                              class="btn"
+                              id="btn-camera-back"
+                            >
+                              Back
+                            </button>
+                          </div>
+                        </div>
+                        <div class="flip-stack">
+                          <video
+                            id="preview"
+                            playsinline
+                            webkit-playsinline
+                            muted
+                            autoplay
+                          ></video>
+                          <!-- Scan beam + tint on preview only; file is full camera stream. -->
+                          <div
+                            class="face-scan-fx hidden"
+                            id="face-scan-fx"
+                            aria-hidden="true"
+                          >
+                            <div
+                              class="face-scan-fx-clip"
+                              id="face-scan-fx-clip"
+                            >
+                              <div
+                                class="face-scan-target hidden"
+                                id="face-scan-target"
+                              >
+                                <div class="face-scan-target-line"></div>
+                                <span
+                                  class="face-scan-target-guide hidden"
+                                ></span>
+                              </div>
+                              <div class="face-scan-fx-tint"></div>
+                              <div class="face-scan-fx-wave"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="chrome-overlay" id="chrome-overlay">
+                          <div class="scan-hud" aria-hidden="true">
+                            <div class="scan-hud-top">
+                              <p class="scan-hud-kicker">Measurement quality</p>
+                              <div class="scan-hud-stars" id="scan-hud-stars">
+                                <span>★</span><span>★</span><span>★</span
+                                ><span>★</span><span>★</span>
+                              </div>
+                              <p class="scan-hud-text" id="scan-hud-text">
+                                Hold still, keep steady lighting, and center
+                                your face.
+                              </p>
+                            </div>
+                            <div class="scan-face-guide">
+                              <span class="scan-corner scan-corner--tl"></span>
+                              <span class="scan-corner scan-corner--tr"></span>
+                              <span class="scan-corner scan-corner--bl"></span>
+                              <span class="scan-corner scan-corner--br"></span>
+                              <div class="scan-ring">
+                                <div class="scan-ring-track"></div>
+                                <div
+                                  class="scan-ring-arc"
+                                  id="scan-ring-arc"
+                                ></div>
+                              </div>
+                            </div>
+                            <p class="scan-hud-bottom" id="scan-hud-bottom">
+                              Preparing…
+                            </p>
+                          </div>
+                          <div
+                            class="scan-recovery hidden"
+                            id="scan-recovery"
+                            role="status"
+                            aria-live="polite"
+                          >
+                            <div class="scan-recovery-icon" aria-hidden="true">
+                              <svg
+                                width="28"
+                                height="28"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M12 8v4l2.5 2.5M21 12a9 9 0 1 1-2.64-6.36"
+                                  stroke="currentColor"
+                                  stroke-width="1.75"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                            </div>
+                            <p class="scan-recovery-eyebrow">Measurement paused</p>
+                            <p class="scan-recovery-title">Ready for another try</p>
+                            <p
+                              class="scan-recovery-message"
+                              id="scan-recovery-message"
+                            ></p>
+                            <ul class="scan-recovery-checklist">
+                              <li>Center your face in the frame</li>
+                              <li>Use steady, even lighting</li>
+                              <li>Hold still while recording</li>
+                            </ul>
+                          </div>
+                          <p
+                            class="placement-status"
+                            id="placement-status"
+                            aria-live="polite"
+                          >
+                            Looking for your face…
+                          </p>
+                          <div
+                            class="overlay fullscreen hidden"
+                            id="overlay-countdown"
+                            hidden
+                          >
+                            <span
+                              id="countdown-number"
+                              aria-live="polite"
+                            ></span>
+                          </div>
+                          <div
+                            class="recording-pill hidden"
+                            id="recording-pill"
+                            aria-live="polite"
+                          >
+                            <span class="dot"></span>
+                            <span id="recording-time">0:00</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="actions scan-actions" id="scan-actions">
+                        <button
+                          type="button"
+                          class="btn primary btn-restart hidden"
+                          id="btn-restart-camera"
+                        >
+                          Restart camera
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-cancel-scan"
+                          id="btn-cancel"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </section>
+
+                    <!-- Face scan result panel section -->
+                    <section
+                      class="panel result hidden"
+                      id="panel-result"
+                      aria-label="Recording complete"
+                    >
+                      <p class="success">Recording finished.</p>
+                      <div
+                        class="upload-preview-card hidden"
+                        id="upload-preview-card"
+                      >
+                        <p class="upload-preview-title">
+                          Recorded video preview
+                        </p>
+                        <video
+                          id="recorded-preview"
+                          class="recorded-preview"
+                          controls
+                          playsinline
+                          preload="metadata"
+                        ></video>
+                        <div
+                          class="upload-status-card"
+                          id="upload-status-card"
+                          aria-live="polite"
+                        >
+                          <div class="upload-status-head">
+                            <span
+                              class="upload-status-label"
+                              id="upload-status-label"
+                              >Ready to upload and calculate score</span
+                            >
+                          </div>
+                          <div
+                            class="upload-progress-track"
+                            id="upload-progress-track"
+                            aria-hidden="true"
+                          >
+                            <div class="upload-progress-fill"></div>
+                            <span class="upload-progress-dot"></span>
+                          </div>
+                        </div>
+                      </div>
+                      <p class="hint" id="mime-hint"></p>
+                      <div class="result-actions">
+                        <button
+                          type="button"
+                          class="btn hidden"
+                          id="btn-record-again"
+                        >
+                          Record again
+                        </button>
+                      </div>
+                    </section>
+
+                    <p class="error hidden" id="error-msg" role="alert"></p>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Session result -->
+              <section class="wizard-step" data-step="4" aria-hidden="true">
+                <div class="emotion-card">
+                  <div class="emotion-header">
+                    <h3 class="emotion-title">Your Session Result</h3>
+                  </div>
+
+                  <div class="emotion-summary">
+                    <div class="emotion-primary-score">
+                      <p
+                        class="emotion-primary-label"
+                        id="emotion-primary-label"
+                      >
+                        Focus score
+                      </p>
+                      <p
+                        class="emotion-primary-value"
+                        id="emotion-primary-value"
+                      >
+                        0.0%
+                      </p>
+                    </div>
+                  </div>
+
+                  <section
+                    class="emotion-compare"
+                    aria-label="Before and after face scan comparison"
+                  >
+                    <div class="emotion-compare__head">
+                      <h4>Activation</h4>
+                    </div>
+                    <div class="emotion-compare__row">
+                      <div class="emotion-compare__label-row">
+                        <span>Before music</span>
+                        <strong id="emotion-baseline-arousal-label">—</strong>
+                      </div>
+                      <div class="emotion-compare__track">
+                        <div
+                          class="emotion-compare__fill baseline"
+                          id="emotion-baseline-arousal-fill"
+                        ></div>
+                      </div>
+                    </div>
+                    <div class="emotion-compare__row">
+                      <div class="emotion-compare__label-row">
+                        <span>After music</span>
+                        <strong id="emotion-post-arousal-label">—</strong>
+                      </div>
+                      <div class="emotion-compare__track">
+                        <div
+                          class="emotion-compare__fill post"
+                          id="emotion-post-arousal-fill"
+                        ></div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <div class="emotion-map-wrap">
+                    <div
+                      class="emotion-map"
+                      id="emotion-map"
+                      role="img"
+                      aria-label="Emotion constellation with valence on x-axis and arousal on y-axis"
+                    >
+                      <svg
+                        class="emotion-constellation"
+                        id="emotion-constellation"
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                        hidden
+                      >
+                        <g id="emotion-mode-anchors" aria-hidden="true"></g>
+                        <g
+                          id="emotion-constellation-cluster"
+                          class="emotion-constellation-cluster"
+                        >
+                          <g id="emotion-constellation-links"></g>
+                          <g id="emotion-constellation-stars"></g>
+                        </g>
+                      </svg>
+                      <div class="emotion-grid"></div>
+                      <div
+                        class="emotion-circumplex-ring"
+                        aria-hidden="true"
+                      ></div>
+                      <div class="emotion-axis axis-x"></div>
+                      <div class="emotion-axis axis-y"></div>
+                      <div class="emotion-center-dot" aria-hidden="true"></div>
+                      <span class="emotion-axis-label axis-top"
+                        >Activation</span
+                      >
+                      <span class="emotion-axis-label axis-bottom"
+                        >Relaxation</span
+                      >
+                      <div
+                        class="emotion-point"
+                        id="emotion-map-point"
+                        aria-hidden="true"
+                      ></div>
+                      <div
+                        class="emotion-mode-layer"
+                        id="emotion-mode-layer"
+                        aria-live="polite"
+                      ></div>
+                    </div>
+                    <div
+                      class="emotion-map-valence-legend"
+                      aria-hidden="false"
+                    >
+                      <span class="emotion-axis-label axis-left">Negative</span>
+                      <span class="emotion-axis-label axis-right"
+                        >Positive</span
+                      >
+                    </div>
+                  </div>
+
+                </div>
+              </section>
+
+              <p class="wizard-error" data-wizard-error aria-live="polite"></p>
+              <div class="wizard-actions">
+                <button
+                  class="btn btn-ghost"
+                  type="button"
+                  data-action="back"
+                >
+                  Back
+                </button>
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  data-action="next"
+                >
+                  Next
+                </button>
+              </div>
+            </form>
+          </section>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div class="container footer-inner">
+          <div class="footer-top">
+            <!-- Footer newsletter section -->
+            <section class="newsletter reveal">
+              <a class="brand" href="/">
+                <img
+                  src="/assets/images/fKsR7OficZ8uLdzrI7sGxJIar9M.png"
+                  alt="Maika logo"
+                />
+                <span class="brand-label"
+                  ><strong>Maika</strong><span>Join our newsletter</span></span
+                >
+              </a>
+              <p>
+                Get updates about personalized AI music, biometrics, and product
+                milestones.
+              </p>
+              <form
+                class="newsletter-form"
+                name="newsletter"
+                method="POST"
+                data-netlify="true"
+                netlify-honeypot="bot-field"
+                data-newsletter-form
+              >
+                <input type="hidden" name="form-name" value="newsletter" />
+                <p hidden>
+                  <label
+                    >Don’t fill this out if you’re human:
+                    <input name="bot-field"
+                  /></label>
+                </p>
+                <input
+                  class="input"
+                  type="email"
+                  name="email"
+                  placeholder="Email address"
+                  aria-label="Email address"
+                  required
+                />
+                <button class="btn btn-primary" type="submit">Subscribe</button>
+              </form>
+            </section>
+
+            <div class="footer-links reveal">
+              <section class="footer-col">
+                <h4>Socials</h4>
+                <a
+                  href="https://www.linkedin.com/company/maika-ai/"
+                  target="_blank"
+                  rel="noopener"
+                  >LinkedIn</a
+                >
+              </section>
+            </div>
+          </div>
+
+          <div class="footer-bottom">
+            <span
+              >© <span data-year></span> Maika AI. All rights reserved.</span
+            >
+          </div>
+        </div>
+      </footer>
+    </div>
+    <script src="/app.js" defer></script>
+    <script src="/demo/js/demo_embed.js" defer></script>
+    <script src="/demo/js/demo_turnstile_boot.js"></script>
+    <script
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+      defer
+    ></script>
+    <script src="/demo/js/demo.js" defer type="module"></script>
+  </body>
+</html>

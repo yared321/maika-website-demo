@@ -1,0 +1,51 @@
+/**
+ * Layout when demo is embedded (?embed=1). Class is set on <html> before paint.
+ */
+html.demo-embed .site-header,
+html.demo-embed .footer {
+  display: none !important;
+}
+
+html.demo-embed .page-shell {
+  min-height: auto;
+}
+
+html.demo-embed .hero-cinematic {
+  min-height: auto;
+  align-items: stretch;
+}
+
+html.demo-embed main {
+  padding-top: 0;
+}
+
+html.demo-embed .demo-landing {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+html.demo-embed .user-input-section {
+  padding: 1rem 0.75rem 1.25rem;
+}
+
+html.demo-embed .demo-landing__hero {
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
+html.demo-embed .demo-landing__title {
+  font-size: clamp(1.35rem, 4vw, 1.85rem);
+}
+
+html.demo-embed .input-container {
+  width: min(640px, 100%);
+}
+
+html.demo-embed .app {
+  max-width: 100%;
+  padding-bottom: 1.5rem;
+}
+
+html.demo-embed .video-wrap {
+  max-height: min(62dvh, 480px);
+}

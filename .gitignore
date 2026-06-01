@@ -1,0 +1,20 @@
+# Keep repo focused on deployable site
+.env
+.env.*
+# Wrangler Pages local secrets
+.dev.vars
+# Wrangler local cache / dev artifacts (safe to ignore; recreated by CLI)
+.wrangler/
+*.zip
+video-frames/
+video-frames-intro/
+compare/
+*-source.html
+.DS_Store
+
+# Python cache (if local scripts are added later)
+__pycache__/
+*.pyc
+
+# Node dependencies
+node_modules/
