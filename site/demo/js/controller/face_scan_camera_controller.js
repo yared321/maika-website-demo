@@ -2,37 +2,29 @@
  * Camera preview, getUserMedia, alignment / record face-framing loops, scan FX, countdown.
  */
 import * as H from "../utils/face_scan_helpers.js";
-import * as Dbg from "../utils/face_scan_debug.js";
-import {
-  getEffectiveRecordTargetMs,
-  resetArtifactTimeline,
-} from "./face_scan_artifact_policy.js";
-import { evaluateFaceQuality } from "./face_scan_quality_checks.js";
-
-var MAX_ALLOWED_RECORDING_PAUSES_BEFORE_RESTART = 5;
 
 /**
- * Normalizes controller runtime state and guarantees quality-trace fields exist.
- * Returns the shared state object used by all camera-controller helpers.
+ * @param {{ faceMinMeanLuminance?: number }} cfg
+ * @returns {number}
+ */
+function resolveFaceMinMeanLuminance(cfg) {
+  return typeof cfg.faceMinMeanLuminance === "number" &&
+    Number.isFinite(cfg.faceMinMeanLuminance)
+    ? cfg.faceMinMeanLuminance
+    : H.DEFAULT_FACE_MIN_MEAN_LUMINANCE;
+}
+
+/**
+ * Build normalized runtime state used by all camera controller helpers.
+ * @param {{
+ *   ctx: Record<string, unknown>,
+ *   elements: Record<string, HTMLElement | null>,
+ *   config: { alignIntervalMs: number, stableHitCount: number, faceMinFrac: number, faceMaxFrac: number, recordTargetMs: number, faceMinMeanLuminance?: number },
+ *   bridges: { hideError?: function(): void, onCountdownDone?: function(): Promise<unknown> | unknown }
+ * }} spec
+ * @returns {{ ctx: Record<string, unknown>, el: Record<string, HTMLElement | null>, cfg: Record<string, unknown>, bridges: Record<string, unknown> }}
  */
 function createCameraControllerState(spec) {
-  if (!spec.ctx.quality || typeof spec.ctx.quality !== "object") {
-    spec.ctx.quality = {};
-  }
-  if (!Array.isArray(spec.ctx.quality.brightnessHistory)) {
-    spec.ctx.quality.brightnessHistory = [];
-  }
-  if (!Array.isArray(spec.ctx.quality.greenHistory)) {
-    spec.ctx.quality.greenHistory = [];
-  }
-  if (!Array.isArray(spec.ctx.quality.frameDtHistory)) {
-    spec.ctx.quality.frameDtHistory = [];
-  }
-  if (!Array.isArray(spec.ctx.quality.motionHistory)) {
-    spec.ctx.quality.motionHistory = [];
-  }
-  spec.ctx.quality.lastCenter = null;
-  spec.ctx.quality.lastSampleAt = null;
   return {
     ctx: spec.ctx,
     el: spec.elements,
@@ -42,21 +34,30 @@ function createCameraControllerState(spec) {
 }
 
 /**
- * Hides camera-loading and camera-error overlays without changing stream state.
+ * Hides both the “waiting for camera” and “camera denied” full-screen overlays inside the video area.
+ * Does not stop the stream or change phase.
+ * @param {ReturnType<typeof createCameraControllerState>} state
  */
 function hideScanCameraStates(state) {
   if (state.el.scanOverlayCamera) state.el.scanOverlayCamera.classList.add("hidden");
   if (state.el.scanOverlayDenied) state.el.scanOverlayDenied.classList.add("hidden");
 }
 
-/** Shows the camera-denied overlay with a readable failure reason. */
+/**
+ * Shows the error overlay (and hides the loading overlay) with a human-readable reason.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ * @param {string} message
+ */
 function showCameraDeniedOverlay(state, message) {
   if (state.el.scanOverlayCamera) state.el.scanOverlayCamera.classList.add("hidden");
   if (state.el.scanOverlayDenied) state.el.scanOverlayDenied.classList.remove("hidden");
   if (state.el.scanOverlayDeniedText) state.el.scanOverlayDeniedText.textContent = message;
 }
 
-/** Stops the alignment polling interval if it is active. */
+/**
+ * Clears the interval that runs `tickAlignment` during the pre-record align phase.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ */
 function stopAlignLoop(state) {
   if (state.ctx.alignTimer != null) {
     clearInterval(state.ctx.alignTimer);
@@ -64,57 +65,21 @@ function stopAlignLoop(state) {
   }
 }
 
-/** Resets recording-only timers, flags, and rolling quality histories. */
+/**
+ * Resets counters used only while recording.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ */
 function resetRecordingBudget(state) {
   state.ctx.recordBudgetAccumMs = 0;
   state.ctx.recordBudgetLastSample = null;
-  state.ctx.recordWallClockStartedAt = null;
   state.ctx.recordingFaceInGuide = false;
   state.ctx.recordingFramingReady = false;
-  state.ctx.recordingPauseCount = 0;
-  state.ctx.recordingPauseActive = false;
-  state.ctx.quality.brightnessHistory = [];
-  state.ctx.quality.greenHistory = [];
-  state.ctx.quality.frameDtHistory = [];
-  state.ctx.quality.motionHistory = [];
-  state.ctx.quality.visibilityFailStreak = 0;
-  resetArtifactTimeline(state.ctx);
-  state.ctx.quality.lastCenter = null;
-  state.ctx.quality.lastSampleAt = null;
 }
 
-function getRecordTargetMs(state) {
-  return getEffectiveRecordTargetMs(state.ctx, state.cfg);
-}
-
-function placementMessageForArtifact(quality) {
-  if (!quality || !quality.artifact) {
-    return quality && quality.message ? quality.message : null;
-  }
-  var a = quality.artifact;
-  if (a.effectiveAction === "track_minor") {
-    return "Recording — hold still for best signal.";
-  }
-  if (a.effectiveAction === "pause_moderate") {
-    return quality.message ? "Paused — " + quality.message : "Paused — adjust position or lighting.";
-  }
-  if (a.effectiveAction === "stop_major") {
-    return quality.message
-      ? "Paused — " + quality.message
-      : "Paused — quality too low. Fix your setup to continue.";
-  }
-  return quality.message;
-}
-
-/** Returns true when the wall-clock recording cap has been reached. */
-function isRecordingWallClockLimitReached(state, nowMs) {
-  var startedAt = Number(state.ctx.recordWallClockStartedAt);
-  var maxWallMs = Number(state.cfg.recordMaxWallClockMs) || 0;
-  if (!Number.isFinite(startedAt) || startedAt <= 0 || maxWallMs <= 0) return false;
-  return nowMs - startedAt >= maxWallMs;
-}
-
-/** Stops record framing loop and clears recording budget state. */
+/**
+ * Stops the record-framing interval and resets its budget state.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ */
 function stopRecordFramingLoop(state) {
   if (state.ctx.recordFramingTimer != null) {
     clearInterval(state.ctx.recordFramingTimer);
@@ -123,7 +88,10 @@ function stopRecordFramingLoop(state) {
   resetRecordingBudget(state);
 }
 
-/** Shows a centered fallback target when ellipse geometry cannot be computed. */
+/**
+ * Show a centered fallback face target when detector geometry is unavailable.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ */
 function showFallbackTarget(state) {
   if (!state.el.faceScanTarget) return;
   state.el.faceScanTarget.classList.remove("hidden");
@@ -133,7 +101,11 @@ function showFallbackTarget(state) {
   state.el.faceScanTarget.style.height = "42%";
 }
 
-/** Applies directional target classes and updates movement hint text. */
+/**
+ * Apply directional guide classes and human-readable movement text.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ * @param {string | null | undefined} direction
+ */
 function syncTargetGuide(state, direction) {
   if (!state.el.faceScanTarget) return;
   state.el.faceScanTarget.classList.remove(
@@ -164,8 +136,11 @@ function syncTargetGuide(state, direction) {
 }
 
 /**
- * Updates visual face-scan overlays (clip, target, paused state) from detection state.
- * This affects UI only and does not change recorded video pixels.
+ * Updates the decorative face-scan FX overlay (visual-only, not encoded in output video).
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ * @param {{ x?: number, y?: number, width: number, height: number }|null} [optBox]
+ * @param {boolean} [alignOk]
+ * @param {string | null} [guideDirection]
  */
 function syncFaceScanFx(state, optBox, alignOk, guideDirection) {
   if (!state.el.faceScanFx || !state.el.preview) return;
@@ -249,69 +224,45 @@ function syncFaceScanFx(state, optBox, alignOk, guideDirection) {
 }
 
 /**
- * Normalizes provider-specific landmark payloads into an array of points.
- * Returns null when the active detector output does not include landmarks.
+ * Get face-framing guidance or a default center instruction.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ * @param {any} box
+ * @returns {{ direction: string, message: string }}
  */
-function extractLandmarksFromDetection(detection) {
-  if (!detection || typeof detection !== "object") return null;
-  if (Array.isArray(detection.landmarks)) return detection.landmarks;
-  if (
-    detection.landmarks &&
-    typeof detection.landmarks === "object" &&
-    Array.isArray(detection.landmarks.positions)
-  ) {
-    return detection.landmarks.positions;
+function getGuideOrCenter(state, box) {
+  if (!box) {
+    return { direction: "center", message: "Move to the center." };
   }
-  if (Array.isArray(detection.faceLandmarks)) return detection.faceLandmarks;
-  return null;
+  return (
+    H.getFaceFramingGuidance(
+      box,
+      state.el.preview,
+      state.cfg.faceMinFrac,
+      state.cfg.faceMaxFrac,
+    ) || { direction: "center", message: "Move to the center." }
+  );
 }
 
 /**
- * Normalizes detection box payloads to { x, y, width, height }.
- * Supports standard detector payloads and numeric safety checks.
+ * Return guide message when available, otherwise fallback text.
+ * @param {{ message?: string } | null | undefined} guide
+ * @param {string} fallbackMessage
+ * @returns {string}
  */
-function extractBoxFromDetection(detection) {
-  if (!detection || typeof detection !== "object") return null;
-  var box = detection.box || null;
-  if (!box || typeof box !== "object") return null;
-  var x = Number(box.x);
-  var y = Number(box.y);
-  var width = Number(box.width);
-  var height = Number(box.height);
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-  if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
-  if (width <= 0 || height <= 0) return null;
-  return { x: x, y: y, width: width, height: height };
+function resolveGuideMessage(guide, fallbackMessage) {
+  return guide && guide.message ? guide.message : fallbackMessage;
 }
 
 /**
- * Runs one recording-phase quality tick.
- *
- * This function:
- * - Runs only while the controller is in `record` phase.
- * - If detector is disabled, it keeps recording continuously and only tracks elapsed
- *   recording budget until target duration is reached.
- * - If detector is enabled, it performs one face detection sample and evaluates
- *   quality gates (framing, pose, visibility, lighting, temporal stability).
- * - Pauses the recorder when quality fails and resumes when quality passes.
- * - Updates placement status text + face-scan overlay guidance in real time.
- * - Accumulates elapsed "valid recording" time and stops recorder when the
- *   configured recording target is reached.
- *
- * This is the main quality gate loop that makes recording self-correcting.
+ * One tick of recording-mode framing checks and budget accumulation.
+ * @param {ReturnType<typeof createCameraControllerState>} state
  */
 function tickCameraRecordFraming(state) {
   if (state.ctx.phase !== "record" || !state.el.preview || !state.el.preview.videoWidth) return;
-  if (!H.isDetectorEnabled()) {
+  var opts = H.getDetectorOptions();
+  if (!opts) {
     var recNoDet = state.ctx.recorder;
     if (!recNoDet) return;
-    var now0 = performance.now();
-    if (isRecordingWallClockLimitReached(state, now0)) {
-      try {
-        recNoDet.stop();
-      } catch (esWall0) {}
-      return;
-    }
     state.ctx.recordingFaceInGuide = true;
     state.ctx.recordingFramingReady = true;
     H.safeRecorderResume(recNoDet);
@@ -325,6 +276,7 @@ function tickCameraRecordFraming(state) {
       state.ctx.recordBudgetLastSample = null;
       return;
     }
+    var now0 = performance.now();
     if (state.ctx.recordBudgetLastSample == null) {
       state.ctx.recordBudgetLastSample = now0;
       return;
@@ -332,7 +284,7 @@ function tickCameraRecordFraming(state) {
     var dt0 = now0 - state.ctx.recordBudgetLastSample;
     if (dt0 > 0 && dt0 < 800) state.ctx.recordBudgetAccumMs += dt0;
     state.ctx.recordBudgetLastSample = now0;
-    if (state.ctx.recordBudgetAccumMs >= getRecordTargetMs(state)) {
+    if (state.ctx.recordBudgetAccumMs >= state.cfg.recordTargetMs) {
       try {
         recNoDet.stop();
       } catch (es0) {}
@@ -343,117 +295,59 @@ function tickCameraRecordFraming(state) {
   if (state.ctx.detectionInFlight) return;
   state.ctx.detectionInFlight = true;
 
-  H.detectSingleFace(state.el.preview)
+  globalThis.faceapi
+    .detectSingleFace(state.el.preview, opts)
     .then(function (detection) {
       state.ctx.detectionInFlight = false;
       if (state.ctx.phase !== "record") return;
       var rec = state.ctx.recorder;
       if (!rec) return;
-      var box = extractBoxFromDetection(detection);
-      var landmarks = extractLandmarksFromDetection(detection);
-      var now = performance.now();
-      if (isRecordingWallClockLimitReached(state, now)) {
-        try {
-          rec.stop();
-        } catch (esWall) {}
-        return;
-      }
-      var metrics = box ? H.sampleFaceRegionMetrics(state.el.preview, box) : null;
-      var quality = evaluateFaceQuality(
-        state,
-        "record",
-        box,
-        landmarks,
-        metrics,
-        now,
+      var box = detection && detection.box ? detection.box : null;
+      var ok = !!(
+        box &&
+        H.isFaceWellFramed(box, state.el.preview, state.cfg.faceMinFrac, state.cfg.faceMaxFrac)
       );
 
-      // Primary restart trigger: sustained major artifact from policy.
-      // Pause-count restart is an additional fallback trigger below.
-      if (quality.artifact && quality.artifact.shouldAbortRecording) {
-        Dbg.logFaceScanStep("record: aborting — sustained major artifact", quality.artifact);
-        state.ctx.discardCurrentRecording = true;
-        state.ctx.autoRestartCameraAfterAbort = true;
-        state.ctx.qualityRestartMessage =
-          "Signal stayed unstable for too long. Keep your face centered, hold still, and use steady lighting.";
-        H.safeRecorderPause(rec);
-        state.ctx.recordingFaceInGuide = false;
-        H.setPlacementUi(
-          state.el.placementStatus,
-          "bad",
-          "Signal was unstable for too long. Restarting camera for a clean measurement…",
-        );
-        try {
-          rec.stop();
-        } catch (_majorAbortStop) {}
-        syncFaceScanFx(state, box, false, quality.direction || null);
-        return;
-      }
-
-      if (quality.artifact && quality.artifact.shouldPauseRecorder) {
-        if (!state.ctx.recordingPauseActive) {
-          state.ctx.recordingPauseActive = true;
-          state.ctx.recordingPauseCount =
-            (Number(state.ctx.recordingPauseCount) || 0) + 1;
-        }
-        if (!state.ctx._lastRecordPauseLogged || state.ctx._lastRecordPauseLogged !== quality.message) {
-          state.ctx._lastRecordPauseLogged = quality.message;
-          Dbg.logFaceScanStep("record: recorder paused (artifact)", {
-            tier: quality.artifact.tier,
-            action: quality.artifact.effectiveAction,
-            streak: quality.artifact.failStreak,
-            pauseCount: state.ctx.recordingPauseCount,
-            message: quality.message,
-          });
-        }
-        if (state.ctx.recordingPauseCount > MAX_ALLOWED_RECORDING_PAUSES_BEFORE_RESTART) {
-          Dbg.logFaceScanStep("record: aborting — too many pause events", {
-            pauseCount: state.ctx.recordingPauseCount,
-          });
-          state.ctx.discardCurrentRecording = true;
-          state.ctx.autoRestartCameraAfterAbort = true;
-          state.ctx.qualityRestartMessage =
-            "Recording was paused too many times (movement/lighting interruptions). Keep steady lighting and hold still so we can finish in one pass.";
-          H.safeRecorderPause(rec);
-          state.ctx.recordingFaceInGuide = false;
-          H.setPlacementUi(
-            state.el.placementStatus,
-            "bad",
-            "Too many pauses detected. Restarting camera for a cleaner recording…",
-          );
-          try {
-            rec.stop();
-          } catch (_pauseAbortStop) {}
-          syncFaceScanFx(state, box, false, quality.direction || null);
-          return;
-        }
+      if (!ok) {
+        var guide = getGuideOrCenter(state, box);
         state.ctx.recordingFaceInGuide = false;
         H.safeRecorderPause(rec);
         state.ctx.recordBudgetLastSample = null;
         H.setPlacementUi(
           state.el.placementStatus,
           "bad",
-          placementMessageForArtifact(quality),
+          box
+            ? resolveGuideMessage(
+                guide,
+                "Paused — move to the center.",
+              )
+            : "Paused — center your face in the frame.",
         );
-        syncFaceScanFx(state, box, false, quality.direction || null);
+        syncFaceScanFx(state, box, false, guide && guide.direction);
         return;
       }
 
-      if (state.ctx._lastRecordPauseLogged) {
-        Dbg.logFaceScanStep("record: recorder resumed (quality pass)");
-        state.ctx._lastRecordPauseLogged = null;
+      var minLRec = resolveFaceMinMeanLuminance(state.cfg);
+      if (!H.isFaceRegionBrightEnough(state.el.preview, box, minLRec)) {
+        state.ctx.recordingFaceInGuide = false;
+        H.safeRecorderPause(rec);
+        state.ctx.recordBudgetLastSample = null;
+        H.setPlacementUi(
+          state.el.placementStatus,
+          "bad",
+          "Paused — too dark. Add more light.",
+        );
+        syncFaceScanFx(state, box, false, null);
+        return;
       }
-      state.ctx.recordingPauseActive = false;
+
       state.ctx.recordingFaceInGuide = true;
       state.ctx.recordingFramingReady = true;
       H.safeRecorderResume(rec);
-      var statusMsg = placementMessageForArtifact(quality) || "Recording...";
       H.setPlacementUi(
         state.el.placementStatus,
-        quality.artifact && quality.artifact.effectiveAction === "track_minor"
-          ? "wait"
-          : "good",
-        statusMsg,
+        "good",
+        "Recording...",
       );
       syncFaceScanFx(state, box);
 
@@ -461,6 +355,8 @@ function tickCameraRecordFraming(state) {
         state.ctx.recordBudgetLastSample = null;
         return;
       }
+
+      var now = performance.now();
       if (state.ctx.recordBudgetLastSample == null) {
         state.ctx.recordBudgetLastSample = now;
         return;
@@ -469,7 +365,7 @@ function tickCameraRecordFraming(state) {
       if (dt > 0 && dt < 800) state.ctx.recordBudgetAccumMs += dt;
       state.ctx.recordBudgetLastSample = now;
 
-      if (state.ctx.recordBudgetAccumMs >= getRecordTargetMs(state)) {
+      if (state.ctx.recordBudgetAccumMs >= state.cfg.recordTargetMs) {
         try {
           rec.stop();
         } catch (es) {}
@@ -484,23 +380,14 @@ function tickCameraRecordFraming(state) {
 }
 
 /**
- * Runs one alignment-phase quality tick.
- *
- * This function:
- * - Runs only while the controller is in `align` phase.
- * - Samples the current frame, detects face, and evaluates the same quality checks
- *   used by recording mode.
- * - Increments `placementStableHits` while quality remains good.
- * - Resets stable hits when quality drops and surfaces directional guidance.
- * - When stable hits reach threshold, transitions phase to `countdown` and starts
- *   the 3-2-1 pre-record countdown.
- *
- * This is the alignment gate before recording starts.
+ * One tick of align-mode polling; advances to countdown after stable hits.
+ * @param {ReturnType<typeof createCameraControllerState>} state
  */
 function tickAlignment(state) {
   if (state.ctx.phase !== "align") return;
   if (!state.el.preview) return;
-  if (!H.isDetectorEnabled()) {
+  var optsAlign = H.getDetectorOptions();
+  if (!optsAlign) {
     stopAlignLoop(state);
     state.ctx.phase = "countdown";
     syncFaceScanFx(state, null);
@@ -512,26 +399,29 @@ function tickAlignment(state) {
     state.el.preview.readyState >= 2 ? H.getCoverVisibleRegion(state.el.preview) : null;
   if (!reg || reg.vw < 160) return;
 
-  H.detectSingleFace(state.el.preview)
+  globalThis.faceapi
+    .detectSingleFace(state.el.preview, optsAlign)
     .then(function (detection) {
       if (state.ctx.phase !== "align") return;
-      var box = extractBoxFromDetection(detection);
-      var landmarks = extractLandmarksFromDetection(detection);
-      var metrics = box ? H.sampleFaceRegionMetrics(state.el.preview, box) : null;
-      var quality = evaluateFaceQuality(
-        state,
-        "align",
-        box,
-        landmarks,
-        metrics,
-        performance.now(),
+      var box = detection && detection.box ? detection.box : null;
+      var aligned = !!(
+        box &&
+        H.isFaceWellFramed(box, state.el.preview, state.cfg.faceMinFrac, state.cfg.faceMaxFrac)
       );
 
-      if (quality.ok) {
-        state.ctx.placementStableHits++;
-        if (state.ctx.placementStableHits === 1) {
-          Dbg.logFaceScanStep("align: first stable quality pass");
+      if (aligned) {
+        var minLAlign = resolveFaceMinMeanLuminance(state.cfg);
+        if (!H.isFaceRegionBrightEnough(state.el.preview, box, minLAlign)) {
+          state.ctx.placementStableHits = 0;
+          H.setPlacementUi(
+            state.el.placementStatus,
+            "bad",
+            "Too dark — add light on your face.",
+          );
+          syncFaceScanFx(state, box, false, null);
+          return;
         }
+        state.ctx.placementStableHits++;
         var msg =
           state.ctx.placementStableHits >= state.cfg.stableHitCount - 1
             ? "Almost there — hold still."
@@ -540,10 +430,6 @@ function tickAlignment(state) {
               : "Face aligned — hold still.";
         H.setPlacementUi(state.el.placementStatus, "good", msg);
         if (state.ctx.placementStableHits >= state.cfg.stableHitCount) {
-          Dbg.logFaceScanStep("align: stable hits reached, starting countdown", {
-            hits: state.ctx.placementStableHits,
-            required: state.cfg.stableHitCount,
-          });
           stopAlignLoop(state);
           state.ctx.phase = "countdown";
           syncFaceScanFx(state, null);
@@ -551,35 +437,32 @@ function tickAlignment(state) {
           runCountdownThenRecord(state);
         }
       } else {
+        var guideAlign = getGuideOrCenter(state, box);
         state.ctx.placementStableHits = 0;
         H.setPlacementUi(
           state.el.placementStatus,
           "bad",
-          quality.message || "Adjust face scan quality.",
+          detection && detection.box
+            ? resolveGuideMessage(guideAlign, "Move to the center.")
+            : "Center your face in the frame.",
         );
-        syncFaceScanFx(state, box, false, quality.direction || null);
+        syncFaceScanFx(state, box, false, guideAlign && guideAlign.direction);
         return;
       }
-      syncFaceScanFx(state, box, quality.ok, null);
+      syncFaceScanFx(state, box, aligned, null);
     })
     .catch(function () {
       syncFaceScanFx(state, null);
     });
 }
 
-/** Starts alignment polling from a clean runtime state. */
+/**
+ * Start align polling from a clean state.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ */
 function startAlignLoop(state) {
   stopAlignLoop(state);
-  Dbg.resetFaceScanDebugDedupe("align");
-  Dbg.resetFaceScanDebugDedupe("record");
-  Dbg.logFaceScanStep("phase: align loop started");
   state.ctx.placementStableHits = 0;
-  state.ctx.quality.brightnessHistory = [];
-  state.ctx.quality.greenHistory = [];
-  state.ctx.quality.frameDtHistory = [];
-  state.ctx.quality.motionHistory = [];
-  state.ctx.quality.lastCenter = null;
-  state.ctx.quality.lastSampleAt = null;
   state.ctx.phase = "align";
   state.ctx.alignTimer = globalThis.setInterval(
     function () {
@@ -590,7 +473,11 @@ function startAlignLoop(state) {
   tickAlignment(state);
 }
 
-/** Shows the 3-2-1 countdown overlay, then continues into recording. */
+/**
+ * Shows a 3-2-1 overlay, then resolves after the last tick.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ * @returns {Promise<void>}
+ */
 function runCountdownThenRecord(state) {
   return new Promise(function (resolve) {
     var n = 3;
@@ -620,7 +507,10 @@ function runCountdownThenRecord(state) {
   });
 }
 
-/** Cancels active countdown timer and hides the countdown overlay. */
+/**
+ * Clears the countdown interval and hides the countdown overlay.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ */
 function cancelCountdown(state) {
   if (state.ctx.countdownTimer) {
     globalThis.clearInterval(state.ctx.countdownTimer);
@@ -632,7 +522,10 @@ function cancelCountdown(state) {
   }
 }
 
-/** Stops loops, closes media tracks, and resets camera runtime to idle. */
+/**
+ * Tear down camera state and associated intervals/stream.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ */
 function stopStream(state) {
   stopRecordFramingLoop(state);
   stopAlignLoop(state);
@@ -651,18 +544,8 @@ function stopStream(state) {
 }
 
 /**
- * Starts camera capture and enters alignment flow.
- *
- * This function:
- * - Validates browser media support.
- * - Shows camera-loading overlay and requests front camera via getUserMedia.
- * - Attaches MediaStream to preview video when permission is granted.
- * - Hides loading/denied overlays, initializes placement UI, and waits for first
- *   frame (`onloadeddata`) so detector logic starts on a ready preview.
- * - Triggers integration callback (`onCameraReady`) and starts align loop.
- * - On failure, shows a human-readable denied/error overlay and returns to idle.
- *
- * This is the single entry point for camera startup in the scan flow.
+ * Request camera, connect stream to preview, then start alignment loop.
+ * @param {ReturnType<typeof createCameraControllerState>} state
  */
 function requestCameraAndStartAlignment(state) {
   if (state.bridges.hideError) state.bridges.hideError();
@@ -697,7 +580,7 @@ function requestCameraAndStartAlignment(state) {
       H.setPlacementUi(
         state.el.placementStatus,
         "wait",
-        "Position your face in the frame.",
+        "Center your face in the frame.",
       );
       return new Promise(function (resolve) {
         if (!state.el.preview) {
@@ -720,11 +603,12 @@ function requestCameraAndStartAlignment(state) {
     });
 }
 
-/** Starts the recording-framing loop from a fresh recording budget. */
+/**
+ * Start record-framing loop from a clean budget.
+ * @param {ReturnType<typeof createCameraControllerState>} state
+ */
 function startRecordFramingLoop(state) {
   stopRecordFramingLoop(state);
-  Dbg.resetFaceScanDebugDedupe("record");
-  Dbg.logFaceScanStep("phase: record framing loop started");
   state.ctx.recordFramingTimer = globalThis.setInterval(
     function () {
       tickCameraRecordFraming(state);
@@ -735,16 +619,13 @@ function startRecordFramingLoop(state) {
 }
 
 /**
- * Builds the camera controller public API.
- *
- * This factory provides:
- * - Lifecycle controls (`requestCameraAndStartAlignment`, `stopStream`).
- * - Phase loop controls (`start/stopAlignLoop`, `start/stopRecordFramingLoop`).
- * - Overlay/FX helpers (`hideScanCameraStates`, `showCameraDeniedOverlay`, `syncFaceScanFx`).
- * - Countdown controls (`runCountdownThenRecord`, `cancelCountdown`).
- *
- * The returned object is the public integration surface consumed by
- * `face_scan_flow_controller.js`.
+ * Create camera controller runtime API.
+ * @param {{
+ *   ctx: Record<string, unknown>,
+ *   elements: Record<string, HTMLElement | null>,
+ *   config: { alignIntervalMs: number, stableHitCount: number, faceMinFrac: number, faceMaxFrac: number, recordTargetMs: number, faceMinMeanLuminance?: number },
+ *   bridges: { hideError?: function(): void, onCountdownDone?: function(): Promise<unknown> | unknown, onCameraReady?: function(): void }
+ * }} spec
  */
 export function createCameraController(spec) {
   var state = createCameraControllerState(spec);

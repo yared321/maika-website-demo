@@ -368,9 +368,64 @@
   font-size: 0.9rem;
 }
 
+.demo-access-card__field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.demo-access-card__label {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.demo-access-card__select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 0.72rem 0.85rem;
+  font: inherit;
+  outline: none;
+}
+
+.demo-access-card__select:focus {
+  border-color: rgba(223, 122, 254, 0.45);
+  box-shadow: 0 0 0 3px rgba(223, 122, 254, 0.12);
+}
+
+.demo-access-card__consent {
+  margin: 0.15rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.demo-access-card__consent .consent-note {
+  margin: 0.35rem 0 0;
+}
+
+.demo-access-card__error {
+  margin: 0;
+  color: #ff9ab5;
+  font-size: 0.82rem;
+}
+
+.demo-access-card__error.hidden {
+  display: none;
+}
+
 .demo-access-card__btn {
   width: fit-content;
   min-width: 140px;
+  margin-top: 0.15rem;
+}
+
+.demo-access-card__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 @media (pointer: coarse) {

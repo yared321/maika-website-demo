@@ -624,14 +624,71 @@ export function selectRandomMusicTrack() {
   return selectMusicTrackByIndex(idx);
 }
 
-/**
- * Pick a random track, wait until it can play, then start playback (wizard music step).
- * @returns {Promise<boolean>}
- */
-export async function autoplayRandomMusicTrack() {
+function formatGenreLabel(genre) {
+  return String(genre || "")
+    .split("-")
+    .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1) : ""))
+    .join("-");
+}
+
+/** Unique genre tags from the loaded catalog, sorted alphabetically. */
+export function getAvailableGenres() {
+  const seen = new Set();
+  for (const song of musicData) {
+    for (const genre of normalizeGenres(song)) {
+      seen.add(genre.toLowerCase());
+    }
+  }
+  return Array.from(seen).sort((a, b) => a.localeCompare(b));
+}
+
+/** Fills the landing-page genre picker from `music.json`. */
+export function populateLandingGenreSelect(selectEl) {
+  if (!selectEl) return;
+  const genres = getAvailableGenres();
+  selectEl.innerHTML = "";
+  if (!genres.length) {
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = "No genres available";
+    selectEl.appendChild(empty);
+    selectEl.disabled = true;
+    return;
+  }
+  selectEl.disabled = false;
+  for (const genre of genres) {
+    const opt = document.createElement("option");
+    opt.value = genre;
+    opt.textContent = formatGenreLabel(genre);
+    selectEl.appendChild(opt);
+  }
+}
+
+function findTrackIndicesByGenre(genre) {
+  const want = String(genre || "").trim().toLowerCase();
+  if (!want) return [];
+  const out = [];
+  for (let i = 0; i < musicData.length; i += 1) {
+    const song = musicData[i];
+    if (normalizeGenres(song).some((g) => g.toLowerCase() === want)) {
+      out.push(i);
+    }
+  }
+  return out;
+}
+
+/** Picks a random track for the given genre tag. */
+export function selectRandomMusicTrackByGenre(genre) {
+  const matches = findTrackIndicesByGenre(genre);
+  if (!matches.length) return selectRandomMusicTrack();
+  const idx = matches[Math.floor(Math.random() * matches.length)];
+  return selectMusicTrackByIndex(idx);
+}
+
+async function autoplaySelectedMusicTrack(selectTrackFn) {
   const gen = ++autoplayGeneration;
   const audio = getMainAudio();
-  if (!audio || !selectRandomMusicTrack()) return false;
+  if (!audio || !selectTrackFn()) return false;
 
   const waitForReady = () =>
     new Promise((resolve, reject) => {
@@ -677,14 +734,29 @@ export async function autoplayRandomMusicTrack() {
   } catch {
     if (gen !== autoplayGeneration) return false;
     const playBtn = document.getElementById("play-pause-btn");
-    if (playBtn && getSelect().value !== "") {
-      setPlayButtonAppearance("▶", "Play selected track");
-      playBtn.disabled = false;
-    }
+    if (playBtn) setPlayButtonAppearance("▶", "Play");
     setDeckPlaying(false);
     stopSpectrumRenderLoop();
     return false;
   }
+}
+
+/**
+ * Pick a random track, wait until it can play, then start playback (wizard music step).
+ * @returns {Promise<boolean>}
+ */
+export async function autoplayRandomMusicTrack() {
+  return autoplaySelectedMusicTrack(selectRandomMusicTrack);
+}
+
+/**
+ * Pick a random track for the genre, wait until it can play, then start playback.
+ * @param {string} genre
+ * @returns {Promise<boolean>}
+ */
+export async function autoplayMusicTrackByGenre(genre) {
+  const want = String(genre || "").trim().toLowerCase();
+  return autoplaySelectedMusicTrack(() => selectRandomMusicTrackByGenre(want));
 }
 
 export function resetMusicDemoSession() {

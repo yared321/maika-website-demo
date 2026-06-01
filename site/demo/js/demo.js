@@ -2,7 +2,8 @@ import {
   fetchMusicData,
   MUSIC_PROGRESS_EVENT,
   interruptMusicFadeOut,
-  autoplayRandomMusicTrack,
+  autoplayMusicTrackByGenre,
+  populateLandingGenreSelect,
   resetMusicDemoSession,
   stopMusicPlayback,
 } from "./controller/music_stream_controller.js";
@@ -77,9 +78,48 @@ function unlockDemoFlow(dom) {
 }
 
 function startDemoFromLanding(dom, state, updateStep) {
+  setLandingError(dom, "");
+
+  if (!dom.faceConsentCheckbox?.checked) {
+    setLandingError(dom, "Please agree to the camera consent before starting.");
+    dom.faceConsentCheckbox?.focus();
+    return;
+  }
+
+  const genre = String(dom.landingGenreSelect?.value || "").trim();
+  if (!genre) {
+    setLandingError(dom, "Choose a music genre to continue.");
+    dom.landingGenreSelect?.focus();
+    return;
+  }
+
+  applyLandingPreferences(dom, state);
   unlockDemoFlow(dom);
   updateStep(dom, state, 0);
-  dom.wizardForm?.querySelector("#age")?.focus();
+}
+
+function applyLandingPreferences(dom, state) {
+  const duration = Number(dom.landingDurationSelect?.value) || MUSIC_AUTO_ADVANCE_SECONDS;
+  const genre = String(dom.landingGenreSelect?.value || "").trim();
+
+  state.preferences.genre = genre;
+  state.preferences.durationSeconds = duration;
+  state.musicGate.selectedGenre = genre;
+  state.musicGate.proceedMinSeconds = Math.min(MUSIC_PROCEED_MIN_SECONDS, duration);
+  state.musicGate.autoAdvanceSeconds = duration;
+}
+
+function setLandingError(dom, message) {
+  if (!dom.demoAccessError) return;
+  dom.demoAccessError.textContent = message || "";
+  dom.demoAccessError.classList.toggle("hidden", !message);
+}
+
+function syncLandingTryButton(dom) {
+  if (!dom.demoAccessButton) return;
+  const hasConsent = !!dom.faceConsentCheckbox?.checked;
+  const hasGenre = !!String(dom.landingGenreSelect?.value || "").trim();
+  dom.demoAccessButton.disabled = !(hasConsent && hasGenre);
 }
 
 function getDomReferences() {
@@ -88,6 +128,10 @@ function getDomReferences() {
     demoLanding: document.getElementById("demo-landing"),
     demoFlow: document.getElementById("demo-flow"),
     demoAccessButton: document.getElementById("demo-access-cta"),
+    demoAccessError: document.getElementById("demo-access-error"),
+    faceConsentCheckbox: document.getElementById("face-consent-checkbox"),
+    landingGenreSelect: document.getElementById("landing-genre-select"),
+    landingDurationSelect: document.getElementById("landing-duration-select"),
     wizardForm,
     steps: wizardForm ? Array.from(wizardForm.querySelectorAll(".wizard-step")) : [],
     backButton: wizardForm?.querySelector('[data-action="back"]'),
@@ -155,6 +199,11 @@ function createInitialState(stepCount) {
       listenedSeconds: 0,
       requirementMet: false,
       autoAdvanced: false,
+      selectedGenre: "",
+    },
+    preferences: {
+      genre: "",
+      durationSeconds: MUSIC_AUTO_ADVANCE_SECONDS,
     },
     nextButtonLabels: new Map([
       [0, "Continue"],
@@ -206,6 +255,8 @@ function initializeUi(dom, state) {
     dom.demoLanding.hidden = false;
     dom.demoLanding.classList.remove("hidden");
   }
+  populateLandingGenreSelect(dom.landingGenreSelect);
+  syncLandingTryButton(dom);
   setValencePanelVisible(dom, false);
   setFaceScanConsentRequired(true);
   updateStep(dom, state, 0, { focus: false });
@@ -319,6 +370,18 @@ function bindEvents(dom, state, controllers) {
     startDemoFromLanding(dom, state, updateStep);
   });
 
+  dom.faceConsentCheckbox?.addEventListener("change", () => {
+    syncLandingTryButton(dom);
+    if (dom.faceConsentCheckbox?.checked) {
+      setLandingError(dom, "");
+    }
+  });
+
+  dom.landingGenreSelect?.addEventListener("change", () => {
+    syncLandingTryButton(dom);
+    setLandingError(dom, "");
+  });
+
   globalThis.addEventListener("beforeunload", () => {
     stopUploadPulse(state);
     if (state.upload.recordedPreviewUrl) {
@@ -357,7 +420,7 @@ function updateStep(dom, state, targetStep, options = {}) {
     state.musicGate.autoAdvanced = false;
     globalThis.requestAnimationFrame(function () {
       globalThis.requestAnimationFrame(function () {
-        void autoplayRandomMusicTrack();
+        void autoplayMusicTrackByGenre(state.musicGate.selectedGenre);
       });
     });
   }
@@ -548,5 +611,7 @@ function returnToLandingPage(dom, state, controllers) {
   }
 
   dom.demoAccessButton?.focus();
+  syncLandingTryButton(dom);
+  setLandingError(dom, "");
   updateStep(dom, state, 0, { focus: false });
 }

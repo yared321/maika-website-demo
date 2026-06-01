@@ -29,6 +29,12 @@ const UPSTREAM = (process.env.MAIKA_RPPG_UPSTREAM || 'https://maika-rppg-web-sta
 const PUBLIC_KEY = String(process.env.MAIKA_PUBLIC_KEY || '').trim();
 const CAPTCHA_TOKEN = String(process.env.MAIKA_CAPTCHA_TOKEN || '').trim();
 const PROXY_PREFIX = '/api/face-assess';
+const INDEX_HTML = path.join(SITE_ROOT, 'index.html');
+
+if (!fs.existsSync(INDEX_HTML)) {
+  console.error(`Missing ${INDEX_HTML}\nThe dev server needs site/index.html at the site root.`);
+  process.exit(1);
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -135,14 +141,12 @@ function proxyAssess(req, res) {
   req.pipe(preq);
 }
 
+function isRootPath(urlPathname) {
+  const p = urlPathname.replace(/\/+$/, '') || '/';
+  return p === '/' || p === '/demo';
+}
+
 function safeResolveFile(urlPathname) {
-  let rel = urlPathname;
-  if (rel === '/' || rel === '' || rel === '/demo' || rel === '/demo/') {
-    rel = 'index.html';
-  } else {
-    rel = rel.replace(/^\//, '');
-  }
-  let disk = path.join(SITE_ROOT, rel);
   const rootResolved = path.resolve(SITE_ROOT);
 
   const ensureInside = (p) => {
@@ -151,7 +155,12 @@ function safeResolveFile(urlPathname) {
     return r;
   };
 
-  disk = ensureInside(disk);
+  if (isRootPath(urlPathname)) {
+    return ensureInside(INDEX_HTML);
+  }
+
+  let rel = urlPathname.replace(/^\//, '');
+  let disk = ensureInside(path.join(SITE_ROOT, rel));
   if (!disk) return null;
 
   if (fs.existsSync(disk) && fs.statSync(disk).isDirectory()) {
@@ -174,8 +183,12 @@ function serveStatic(req, res) {
   const u = new URL(req.url, `http://127.0.0.1:${PORT}`);
   const file = safeResolveFile(u.pathname);
   if (!file) {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not found');
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(
+      `Not found: ${u.pathname}\n\n` +
+        `Site root: ${SITE_ROOT}\n` +
+        `Homepage should be: ${INDEX_HTML}`,
+    );
     return;
   }
   const ext = path.extname(file).toLowerCase();
@@ -204,9 +217,10 @@ const server = http.createServer((req, res) => {
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {
     console.error(
-      `Port ${PORT} is already in use. Stop that server, or run:\n` +
-        `  PORT=3040 node scripts/maika-dev-proxy.mjs\n` +
-        `then open http://localhost:3040/`,
+      `Port ${PORT} is already in use (often an old dev server).\n` +
+        `  kill $(lsof -t -i:${PORT})   # stop it\n` +
+        `  npm run dev                    # start again\n` +
+        `  open http://localhost:${PORT}/`,
     );
   } else {
     console.error(err);
