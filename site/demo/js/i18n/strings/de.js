@@ -121,7 +121,7 @@ export default {
         excited: "Aufgeregt",
         focused: "Konzentriert",
         happy: "Glücklich",
-        pleased: "Zufrieden",
+        pleased: "erfreut",
         content: "Zufrieden",
         relaxed: "Entspannt",
         calm: "Ruhig",
