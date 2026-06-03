@@ -14,5 +14,12 @@ export function syncWizardNextButton(dom, state) {
     dom.nextButton.disabled = !state.musicGate.requirementMet;
     return;
   }
+  if (state.currentStep === 2) {
+    dom.nextButton.disabled =
+      state.upload.isInFlight ||
+      !state.upload.completed ||
+      !state.emotionViz.postScanValenceConfirmed;
+    return;
+  }
   dom.nextButton.disabled = false;
 }

@@ -302,5 +302,6 @@ export default {
     recordingRequired: "Complete a face recording first.",
     listenRemainingOne: "Listen for {remaining} more second to continue.",
     listenRemainingMany: "Listen for {remaining} more seconds to continue.",
+    valenceRequired: "Move the slider to rate how you feel before continuing.",
   },
 };

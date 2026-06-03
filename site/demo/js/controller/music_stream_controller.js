@@ -54,7 +54,9 @@ function clearLoopFade() {
 
 function getTargetVolume() {
   const volumeSlider = document.getElementById("volume-slider");
-  return volumeSlider ? Number(volumeSlider.value) || 1 : 1;
+  if (!volumeSlider) return 1;
+  const v = Number(volumeSlider.value);
+  return Number.isFinite(v) ? v : 1;
 }
 
 function resetSessionListenClock() {
@@ -95,6 +97,9 @@ export function setMusicLoopPlayback(enabled) {
 }
 
 function applyLoopFadeOutVolume(audio) {
+  // Never touch volume while a stop-fade is running — it owns the volume ramp.
+  if (activeFadeRaf) return;
+
   const d = audio.duration;
   const targetVol = getTargetVolume();
   if (
@@ -168,7 +173,7 @@ export function interruptMusicFadeOut() {
   const audio = getMainAudio();
   const fallback = document.getElementById("audio-player");
   const volumeSlider = document.getElementById("volume-slider");
-  const v = volumeSlider ? Number(volumeSlider.value) || 0 : 1;
+  const v = (() => { const n = volumeSlider ? Number(volumeSlider.value) : NaN; return Number.isFinite(n) ? n : 1; })();
   if (audio && Number.isFinite(audio.volume)) audio.volume = v;
   if (fallback && Number.isFinite(fallback.volume)) fallback.volume = v;
 }
@@ -515,8 +520,9 @@ function bindAudioControlsOnce() {
   //   }
   // });
 
-  audio.volume = Number(volumeSlider.value) || 0;
-  setRangeFillPercent(volumeSlider, (Number(volumeSlider.value) || 0) * 100);
+  const initVol = Number.isFinite(Number(volumeSlider.value)) ? Number(volumeSlider.value) : 1;
+  audio.volume = initVol;
+  setRangeFillPercent(volumeSlider, initVol * 100);
   volumeSlider.addEventListener("input", () => {
     audio.volume = Number(volumeSlider.value);
     setRangeFillPercent(volumeSlider, (Number(volumeSlider.value) || 0) * 100);
@@ -718,10 +724,13 @@ export function stopMusicPlayback(options = {}) {
 
       const elapsed = Math.max(0, now - startAt);
       const progress = Math.min(1, elapsed / fadeOutMs);
-      // Ease-in curve keeps the first half gentler and avoids an abrupt-feeling drop.
-      const easedProgress = progress * progress;
+      // Ease-out curve: volume drops quickly at first then tails off smoothly into
+      // silence, which is how the human ear expects a natural fade to feel and
+      // avoids the abrupt click that an ease-in curve produces near the end.
+      const remaining = 1 - progress;
+      const multiplier = remaining * remaining;
       for (const target of fadeTargets) {
-        target.el.volume = Math.max(0, target.startVolume * (1 - easedProgress));
+        target.el.volume = Math.max(0, target.startVolume * multiplier);
       }
 
       if (progress >= 1) {

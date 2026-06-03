@@ -312,5 +312,6 @@ export default {
     recordingRequired: "Maak eerst een gezichtsopname.",
     listenRemainingOne: "Luister nog {remaining} seconde om door te gaan.",
     listenRemainingMany: "Luister nog {remaining} seconden om door te gaan.",
+    valenceRequired: "Beweeg de schuifregelaar om aan te geven hoe je je voelt voor je verdergaat.",
   },
 };

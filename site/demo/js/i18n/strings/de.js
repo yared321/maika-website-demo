@@ -317,5 +317,6 @@ export default {
       "Höre noch {remaining} Sekunde, um fortzufahren.",
     listenRemainingMany:
       "Höre noch {remaining} Sekunden, um fortzufahren.",
+    valenceRequired: "Bewege den Schieberegler, um anzugeben, wie du dich fühlst, bevor du fortfährst.",
   },
 };

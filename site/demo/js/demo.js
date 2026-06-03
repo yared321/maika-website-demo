@@ -40,7 +40,7 @@ const MUSIC_PROCEED_MIN_SECONDS = 30;
 /** Default listening session length (2 minutes) when landing duration is unset. */
 const MUSIC_DEFAULT_DURATION_SECONDS = 120;
 
-/** Wizard steps that hide Next (post-music face scan auto-advances after upload). */
+/** Wizard steps where the Next button starts hidden (shown once conditions are met). */
 const AUTO_ADVANCE_STEPS = new Set([2]);
 
 try {
@@ -239,6 +239,11 @@ function createControllers(dom, state) {
       if (state.currentStep === 2) {
         state.emotionViz.postScanValenceConfirmed = true;
         setWizardError(dom, "");
+        syncWizardNextButton(dom, state);
+        if (state.upload.completed && !state.upload.isInFlight) {
+          syncPostScanValenceForResults(state, controllers);
+          updateStep(dom, state, 3, { controllers });
+        }
       }
     },
   });
@@ -307,6 +312,7 @@ function bindEvents(dom, state, controllers) {
       state.emotionViz.postScanValenceConfirmed = false;
     }
     applyRecordedPreview(dom, state, detail.blob);
+    if (state.currentStep === 2 && dom.nextButton) dom.nextButton.hidden = true;
     void startFaceUpload(dom, state, setWizardError);
     syncFaceStepNextGate(dom, state);
   });
@@ -334,8 +340,14 @@ function bindEvents(dom, state, controllers) {
       return;
     }
     if (phase === "post" && state.currentStep === 2 && state.upload.completed) {
-      syncPostScanValenceForResults(state, controllers);
-      updateStep(dom, state, 3, { controllers });
+      if (dom.nextButton) dom.nextButton.hidden = false;
+      syncWizardNextButton(dom, state);
+      if (state.emotionViz.postScanValenceConfirmed) {
+        syncPostScanValenceForResults(state, controllers);
+        updateStep(dom, state, 3, { controllers });
+      } else {
+        setWizardError(dom, t("errors.valenceRequired"));
+      }
     }
   });
 
@@ -346,6 +358,7 @@ function bindEvents(dom, state, controllers) {
     clearRecordedPreview(dom, state);
     setWizardError(dom, "");
     syncRecordAgainButton(dom, false);
+    if (dom.nextButton) dom.nextButton.hidden = true;
     restartFaceScanForNewRecording();
     syncFaceStepNextGate(dom, state);
   });
@@ -560,6 +573,24 @@ async function handleNextClick(dom, state, controllers) {
       return;
     }
     updateStep(dom, state, 2, { controllers });
+    return;
+  }
+
+  if (state.currentStep === 2) {
+    if (state.upload.isInFlight) {
+      setWizardError(dom, t("errors.uploadInProgress"));
+      return;
+    }
+    if (!state.upload.completed) {
+      setWizardError(dom, t("errors.recordingRequired"));
+      return;
+    }
+    if (!state.emotionViz.postScanValenceConfirmed) {
+      setWizardError(dom, t("errors.valenceRequired"));
+      return;
+    }
+    syncPostScanValenceForResults(state, controllers);
+    updateStep(dom, state, 3, { controllers });
     return;
   }
 
