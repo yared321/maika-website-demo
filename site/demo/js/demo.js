@@ -2,7 +2,6 @@ import { initI18n, resolveLocale, t } from "./i18n/index.js";
 import {
   fetchMusicData,
   MUSIC_PROGRESS_EVENT,
-  MUSIC_ENDED_EVENT,
   interruptMusicFadeOut,
   autoplayMusicTrackByGenre,
   populateLandingGenreSelect,
@@ -296,25 +295,6 @@ function bindEvents(dom, state, controllers) {
       state.musicGate.requirementMet = true;
       syncWizardNextButton(dom, state);
     }
-
-    if (
-      state.currentStep === 1 &&
-      state.preferences.durationSeconds > 0 &&
-      state.musicGate.listenedSeconds >= state.preferences.durationSeconds
-    ) {
-      state.musicGate.requirementMet = true;
-      setWizardError(dom, "");
-      syncWizardNextButton(dom, state);
-      updateStep(dom, state, 2, { controllers });
-    }
-  });
-
-  document.addEventListener(MUSIC_ENDED_EVENT, () => {
-    if (state.currentStep !== 1) return;
-    state.musicGate.requirementMet = true;
-    setWizardError(dom, "");
-    syncWizardNextButton(dom, state);
-    updateStep(dom, state, 2, { controllers });
   });
 
   document.addEventListener("maika-demo:face-scan-blob-ready", (ev) => {
