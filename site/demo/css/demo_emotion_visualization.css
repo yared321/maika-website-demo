@@ -89,25 +89,89 @@
 }
 
 .emotion-compare__track {
+  position: relative;
   height: 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(
+    90deg,
+    rgba(118, 240, 191, 0.28) 0%,
+    rgba(118, 240, 191, 0.1) 48%,
+    rgba(130, 166, 255, 0.1) 52%,
+    rgba(76, 227, 255, 0.28) 100%
+  );
   overflow: hidden;
 }
 
+/* Center tick = 0 activation (relax ← | → focus). */
+.emotion-compare__track::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.38);
+  z-index: 1;
+  pointer-events: none;
+}
+
 .emotion-compare__fill {
+  position: absolute;
+  top: 0;
+  left: 50%;
   height: 100%;
   width: 0%;
-  border-radius: inherit;
-  transition: width 260ms ease;
+  transition:
+    left 260ms ease,
+    width 260ms ease;
 }
 
-.emotion-compare__fill.baseline {
-  background: linear-gradient(90deg, rgba(130, 166, 255, 0.88), rgba(76, 227, 255, 0.84));
+.emotion-compare__fill.is-negative {
+  border-radius: 999px 0 0 999px;
 }
 
-.emotion-compare__fill.post {
-  background: linear-gradient(90deg, rgba(118, 240, 191, 0.9), rgba(99, 225, 255, 0.9));
+.emotion-compare__fill.is-positive {
+  border-radius: 0 999px 999px 0;
+}
+
+/* Relax (negative, left): green · Focus (positive, right): blue */
+.emotion-compare__fill.is-negative {
+  background: linear-gradient(
+    90deg,
+    rgba(118, 240, 191, 0.98),
+    rgba(140, 232, 210, 0.88)
+  );
+}
+
+.emotion-compare__fill.is-positive {
+  background: linear-gradient(
+    90deg,
+    rgba(99, 200, 255, 0.88),
+    rgba(76, 140, 255, 0.98)
+  );
+}
+
+.emotion-compare__scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: -0.15rem;
+  color: rgba(236, 244, 255, 0.45);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.emotion-compare__scale span:nth-child(2) {
+  font-variant-numeric: tabular-nums;
+}
+
+.emotion-compare__scale span:first-child {
+  color: rgba(118, 240, 191, 0.82);
+}
+
+.emotion-compare__scale span:last-child {
+  color: rgba(130, 190, 255, 0.9);
 }
 
 .emotion-compare__hint {

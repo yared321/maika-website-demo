@@ -79,6 +79,46 @@ function signedPercent(n, digits) {
 }
 
 /**
+ * Map signed arousal [-100, 100] onto the compare bar (center = 0, left = relax, right = focus).
+ * @param {HTMLElement | null} fillEl
+ * @param {number | null} value clamped score, or null when missing
+ */
+function applySignedArousalBarFill(fillEl, value) {
+  if (!fillEl) return;
+
+  if (value == null) {
+    fillEl.style.width = "0%";
+    fillEl.style.left = "50%";
+    fillEl.classList.remove("is-negative", "is-positive", "is-zero");
+    return;
+  }
+
+  const v = clampPercent(value);
+  const halfSpan = (Math.abs(v) / 100) * 50;
+
+  if (Math.abs(v) < 0.05) {
+    fillEl.style.width = "0%";
+    fillEl.style.left = "50%";
+    fillEl.classList.add("is-zero");
+    fillEl.classList.remove("is-negative", "is-positive");
+    return;
+  }
+
+  if (v < 0) {
+    fillEl.style.width = halfSpan.toFixed(2) + "%";
+    fillEl.style.left = (50 - halfSpan).toFixed(2) + "%";
+    fillEl.classList.add("is-negative");
+    fillEl.classList.remove("is-positive", "is-zero");
+    return;
+  }
+
+  fillEl.style.width = halfSpan.toFixed(2) + "%";
+  fillEl.style.left = "50%";
+  fillEl.classList.add("is-positive");
+  fillEl.classList.remove("is-negative", "is-zero");
+}
+
+/**
  * Convert valence/arousal scores into map percentages for x/y placement.
  * Input domain is [-100, 100], output domain is safe plot percentages.
  * @param {number} valence
@@ -509,14 +549,8 @@ function updateBeforeAfterComparison(controller) {
     controller.emotionPostArousalLabel.textContent =
       post == null ? "—" : signedPercent(post, 1);
   }
-  if (controller.emotionBaselineArousalFill) {
-    controller.emotionBaselineArousalFill.style.width =
-      baseline == null ? "0%" : Math.abs(baseline).toFixed(1) + "%";
-  }
-  if (controller.emotionPostArousalFill) {
-    controller.emotionPostArousalFill.style.width =
-      post == null ? "0%" : Math.abs(post).toFixed(1) + "%";
-  }
+  applySignedArousalBarFill(controller.emotionBaselineArousalFill, baseline);
+  applySignedArousalBarFill(controller.emotionPostArousalFill, post);
 
   if (baseline == null || post == null) {
     if (controller.emotionArousalDeltaHint) {
