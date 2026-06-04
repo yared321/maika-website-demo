@@ -251,8 +251,8 @@ export function isFaceRegionBrightEnough(video, box, minMean) {
       : DEFAULT_FACE_MIN_MEAN_LUMINANCE;
   var L = estimateFaceRegionMeanLuminance(video, box);
   if (L == null || !Number.isFinite(L)) return false;
-  console.log('L', L);
-  console.log('min', min);
+  // console.log('L', L);
+  // console.log('min', min);
   return L >= min;
 }
 
