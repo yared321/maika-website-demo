@@ -1,10 +1,10 @@
 /**
  * Demo music list + playback wiring.
  *
- * Flow: demo.js imports `fetchMusicData` → runs once at startup → fills
- * #music-select, binds one change handler, attaches one audio control listener set.
+ * Flow: demo.js imports `fetchMusicData` → runs once at startup → loads
+ * `music.json` + `music_genres.json`, fills #music-select, and plays genre playlists.
  *
- * Emits `maika-demo:music-ended` on `document` when a track finishes (wizard can listen).
+ * Emits `maika-demo:genre-playlist-complete` when every track in the selected genre has played.
  */
 import {
   attachWaveformCanvas,
@@ -18,13 +18,34 @@ import { t } from "../i18n/index.js";
 
 export const MUSIC_ENDED_EVENT = "maika-demo:music-ended";
 export const MUSIC_PROGRESS_EVENT = "maika-demo:music-progress";
+/** Fired when every track in the selected genre playlist has played (wizard may advance). */
+export const MUSIC_GENRE_PLAYLIST_COMPLETE_EVENT =
+  "maika-demo:genre-playlist-complete";
 
 /** Seconds before track end to begin loop fade-out. */
 const LOOP_FADE_OUT_SEC = 2.5;
 /** Milliseconds to fade volume back in after a loop restart. */
 const LOOP_FADE_IN_MS = 1800;
+/** Genre playlist: fade out current track in the last N seconds before advancing. */
+const PLAYLIST_TRACK_FADE_OUT_SEC = 2.5;
+/** Genre playlist: fade in after loading the next track. */
+const PLAYLIST_TRACK_FADE_IN_MS = 1800;
+/** Extra fade-out when swapping tracks if not already near silence. */
+const PLAYLIST_TRACK_FADE_OUT_MS = 600;
 
 let musicData = [];
+/** From `data/music_genres.json`: genre list + track id maps. */
+let musicGenresCatalog = null;
+/** Wizard genre playlist: catalog indices in play order. */
+let genrePlaylistMode = false;
+let genrePlaylistQueue = [];
+let genrePlaylistPosition = 0;
+let activeGenrePlaylistId = "";
+/** Bumps when a new genre playlist starts; invalidates in-flight per-track loads. */
+let genrePlaylistSession = 0;
+/** Prevents double advance from `ended` + `timeupdate` near track end. */
+let genrePlaylistAdvancing = false;
+let genrePlaylistEndHandledForPosition = -1;
 let controlsBound = false;
 let selectBound = false;
 let selectionLocked = false;
@@ -117,6 +138,137 @@ function applyLoopFadeOutVolume(audio) {
   } else if (remaining > LOOP_FADE_OUT_SEC) {
     audio.volume = targetVol;
   }
+}
+
+/** Ramp volume down near the end of a genre-playlist track (before advancing). */
+function applyGenrePlaylistFadeOutVolume(audio) {
+  if (activeFadeRaf || loopFadeRaf || genrePlaylistAdvancing) return;
+
+  const d = audio.duration;
+  const targetVol = getTargetVolume();
+  if (!genrePlaylistMode || !Number.isFinite(d) || d <= PLAYLIST_TRACK_FADE_OUT_SEC) {
+    return;
+  }
+  const remaining = d - audio.currentTime;
+  if (remaining <= PLAYLIST_TRACK_FADE_OUT_SEC && remaining > 0.05) {
+    audio.volume = Math.max(0, targetVol * (remaining / PLAYLIST_TRACK_FADE_OUT_SEC));
+  } else if (remaining > PLAYLIST_TRACK_FADE_OUT_SEC) {
+    audio.volume = targetVol;
+  }
+}
+
+function waitForAudioReady(audio, timeoutMs = 45000) {
+  return new Promise((resolve, reject) => {
+    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      resolve();
+      return;
+    }
+    const timeoutId = globalThis.setTimeout(() => {
+      cleanup();
+      reject(new Error("Track load timed out"));
+    }, timeoutMs);
+    const cleanup = () => {
+      globalThis.clearTimeout(timeoutId);
+      audio.removeEventListener("canplay", onReady);
+      audio.removeEventListener("loadeddata", onReady);
+      audio.removeEventListener("error", onError);
+    };
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error("Track failed to load"));
+    };
+    audio.addEventListener("canplay", onReady, { once: true });
+    audio.addEventListener("loadeddata", onReady, { once: true });
+    audio.addEventListener("error", onError, { once: true });
+  });
+}
+
+function isGenrePlaylistSessionActive(session) {
+  return genrePlaylistMode && session === genrePlaylistSession;
+}
+
+async function fadeOutPlayingAudio(audio, maxMs = PLAYLIST_TRACK_FADE_OUT_MS) {
+  if (!audio || audio.paused) return;
+  const targetVol = getTargetVolume();
+  if (!Number.isFinite(audio.volume) || audio.volume <= 0.01) {
+    audio.volume = 0;
+    return;
+  }
+  const ratio = targetVol > 0 ? audio.volume / targetVol : 1;
+  const ms = Math.max(200, Math.min(maxMs, ratio * maxMs));
+  clearLoopFade();
+  await fadeVolumeTo(audio, 0, ms);
+}
+
+/**
+ * Load and play a genre-playlist track with fade-in.
+ * @param {number} position
+ * @param {number} playlistSession
+ */
+async function playGenrePlaylistTrackAt(position, playlistSession) {
+  if (!isGenrePlaylistSessionActive(playlistSession)) return false;
+  if (position < 0 || position >= genrePlaylistQueue.length) return false;
+
+  genrePlaylistPosition = position;
+  genrePlaylistEndHandledForPosition = -1;
+  const trackIndex = genrePlaylistQueue[position];
+  if (!selectMusicTrackByIndex(trackIndex)) return false;
+
+  const audio = getMainAudio();
+  if (!audio || !audio.getAttribute("src")) return false;
+
+  const playBtn = document.getElementById("play-pause-btn");
+
+  try {
+    await waitForAudioReady(audio);
+    if (!isGenrePlaylistSessionActive(playlistSession)) return false;
+
+    await ensureSpectrumFromUserGesture(audio);
+    if (!isGenrePlaylistSessionActive(playlistSession)) return false;
+
+    loopPlaybackEnabled = false;
+    clearLoopFade();
+    audio.volume = 0;
+    await audio.play();
+
+    setDeckPlaying(true);
+    if (playBtn) {
+      setPlayButtonAppearance("♪", t("music.playing"));
+      playBtn.disabled = true;
+    }
+    revealCoverArtInSlot();
+    markSessionListenStart();
+    startSpectrumRenderLoop();
+
+    await fadeVolumeTo(audio, getTargetVolume(), PLAYLIST_TRACK_FADE_IN_MS);
+    return isGenrePlaylistSessionActive(playlistSession);
+  } catch {
+    if (!isGenrePlaylistSessionActive(playlistSession)) return false;
+    if (playBtn) setPlayButtonAppearance("▶", t("music.play"));
+    setDeckPlaying(false);
+    stopSpectrumRenderLoop();
+    return false;
+  }
+}
+
+/** Fade out the current track, then load and fade in the next playlist item. */
+async function transitionGenrePlaylistToPosition(nextPos, playlistSession) {
+  if (!isGenrePlaylistSessionActive(playlistSession)) return false;
+
+  const audio = getMainAudio();
+  if (audio && !audio.paused) {
+    await fadeOutPlayingAudio(audio);
+    audio.pause();
+    markSessionListenPause();
+    stopSpectrumRenderLoop();
+  }
+
+  if (!isGenrePlaylistSessionActive(playlistSession)) return false;
+  return playGenrePlaylistTrackAt(nextPos, playlistSession);
 }
 
 function fadeVolumeTo(audio, targetVolume, durationMs) {
@@ -279,16 +431,24 @@ function formatTrackOptionLabel(song) {
   return `${title} (${genres.join(", ")})`;
 }
 
+/** Site-root path for track cover PNGs under `site/demo/data/images/`. */
+const TRACK_COVER_IMAGE_PREFIX = "/demo/data/images/";
+
 /**
- * Turns optional `image` from music.json into a browser URL (absolute https, site-root
- * `/demo/...`, or legacy `site/demo/...` paths from the repo layout).
+ * Turns optional `image` from the track catalog into a browser URL (absolute https or site-root
+ * `/demo/...` paths).
  */
 function resolveTrackImageUrl(song) {
   const raw = song?.image;
   if (!raw || typeof raw !== "string") return "";
-  const t = raw.trim();
+  let t = raw.trim();
   if (!t) return "";
   if (/^https?:\/\//i.test(t)) return t;
+  if (t.startsWith("/demo/assets/images/")) {
+    t = `${TRACK_COVER_IMAGE_PREFIX}${t.slice("/demo/assets/images/".length)}`;
+  } else if (t.startsWith("/assets/images/")) {
+    t = `${TRACK_COVER_IMAGE_PREFIX}${t.slice("/assets/images/".length)}`;
+  }
   if (t.startsWith("/")) return t;
   if (t.startsWith("site/")) return `/${t.slice("site/".length)}`;
   try {
@@ -385,6 +545,177 @@ function updateNowPlaying(song) {
   stageCoverArt(song);
 }
 
+function normalizeGenreKey(genre) {
+  return String(genre || "").trim().toLowerCase();
+}
+
+function buildTrackIdToIndexMap() {
+  const map = new Map();
+  for (let i = 0; i < musicData.length; i += 1) {
+    const id = musicData[i]?.id;
+    if (id) map.set(id, i);
+  }
+  return map;
+}
+
+/** Catalog indices for a genre (order from music_genres.json). */
+function resolveGenrePlaylistIndices(genreId) {
+  const want = normalizeGenreKey(genreId);
+  if (!want) return [];
+
+  const catalogEntry = musicGenresCatalog?.genres?.find((g) => g.id === want);
+  const trackIds = catalogEntry?.trackIds;
+  if (Array.isArray(trackIds) && trackIds.length > 0) {
+    const idToIndex = buildTrackIdToIndexMap();
+    const indices = [];
+    for (const trackId of trackIds) {
+      const idx = idToIndex.get(trackId);
+      if (Number.isFinite(idx)) indices.push(idx);
+    }
+    if (indices.length) return indices;
+  }
+
+  return findTrackIndicesByGenre(want);
+}
+
+function clearGenrePlaylistState() {
+  genrePlaylistMode = false;
+  genrePlaylistQueue = [];
+  genrePlaylistPosition = 0;
+  activeGenrePlaylistId = "";
+  genrePlaylistAdvancing = false;
+  genrePlaylistEndHandledForPosition = -1;
+  genrePlaylistSession += 1;
+}
+
+function finishGenrePlaylistPlayback() {
+  const genre = activeGenrePlaylistId;
+  clearGenrePlaylistState();
+  loopPlaybackEnabled = false;
+
+  const audio = getMainAudio();
+  const playBtn = document.getElementById("play-pause-btn");
+  const progressBar = document.getElementById("progress-bar");
+  const currentTimeEl = document.getElementById("current-time");
+
+  markSessionListenPause();
+  if (audio) {
+    audio.pause();
+  }
+  if (playBtn) {
+    setPlayButtonAppearance("▶", t("music.play"));
+    playBtn.disabled = false;
+  }
+  setDeckPlaying(false);
+  stopSpectrumRenderLoop();
+  if (progressBar) {
+    setRangeFillPercent(progressBar, 0);
+    progressBar.value = "0";
+  }
+  if (currentTimeEl) currentTimeEl.textContent = "0:00";
+
+  document.dispatchEvent(
+    new CustomEvent(MUSIC_GENRE_PLAYLIST_COMPLETE_EVENT, {
+      bubbles: true,
+      detail: { genre },
+    }),
+  );
+}
+
+/**
+ * @param {{ forGenrePlaylist?: boolean }} [options]
+ */
+async function playCurrentSelectedTrack(options = {}) {
+  const forGenrePlaylist = options.forGenrePlaylist === true;
+  const gen = forGenrePlaylist ? autoplayGeneration : ++autoplayGeneration;
+  const playlistSession = forGenrePlaylist ? genrePlaylistSession : 0;
+  const audio = getMainAudio();
+  if (!audio || !audio.getAttribute("src")) return false;
+
+  try {
+    await waitForAudioReady(audio);
+    if (forGenrePlaylist) {
+      if (playlistSession !== genrePlaylistSession || !genrePlaylistMode) return false;
+    } else if (gen !== autoplayGeneration) {
+      return false;
+    }
+    if (!audio.getAttribute("src")) return false;
+
+    await ensureSpectrumFromUserGesture(audio);
+    if (forGenrePlaylist) {
+      if (playlistSession !== genrePlaylistSession || !genrePlaylistMode) return false;
+    } else if (gen !== autoplayGeneration) {
+      return false;
+    }
+
+    startSpectrumRenderLoop();
+    loopPlaybackEnabled = false;
+    await audio.play();
+    return true;
+  } catch {
+    if (forGenrePlaylist) {
+      if (playlistSession !== genrePlaylistSession || !genrePlaylistMode) return false;
+    } else if (gen !== autoplayGeneration) {
+      return false;
+    }
+    const playBtn = document.getElementById("play-pause-btn");
+    if (playBtn) setPlayButtonAppearance("▶", t("music.play"));
+    setDeckPlaying(false);
+    stopSpectrumRenderLoop();
+    return false;
+  }
+}
+
+/** Play genre playlist tracks from `startPos` until one starts or the queue is exhausted. */
+async function advanceGenrePlaylistFrom(startPos) {
+  if (!genrePlaylistMode || startPos < 0 || startPos >= genrePlaylistQueue.length) {
+    return false;
+  }
+
+  loopPlaybackEnabled = false;
+  const session = genrePlaylistSession;
+  for (let pos = startPos; pos < genrePlaylistQueue.length; pos += 1) {
+    if (!isGenrePlaylistSessionActive(session)) return false;
+    const played = await playGenrePlaylistTrackAt(pos, session);
+    if (played) return true;
+  }
+
+  finishGenrePlaylistPlayback();
+  return false;
+}
+
+async function onGenrePlaylistTrackEnded() {
+  if (!genrePlaylistMode || genrePlaylistAdvancing) return;
+
+  genrePlaylistAdvancing = true;
+  const session = genrePlaylistSession;
+  try {
+    const nextPos = genrePlaylistPosition + 1;
+    if (nextPos >= genrePlaylistQueue.length) {
+      const audio = getMainAudio();
+      if (audio && !audio.paused) {
+        await fadeOutPlayingAudio(audio, PLAYLIST_TRACK_FADE_IN_MS);
+        audio.pause();
+      }
+      finishGenrePlaylistPlayback();
+      return;
+    }
+    await transitionGenrePlaylistToPosition(nextPos, session);
+  } finally {
+    genrePlaylistAdvancing = false;
+  }
+}
+
+function maybeAdvanceGenrePlaylistNearEnd(audio) {
+  if (!genrePlaylistMode || genrePlaylistAdvancing || !audio) return;
+  const d = audio.duration;
+  if (!Number.isFinite(d) || d <= 0.5) return;
+  if (audio.currentTime < d - 0.25) return;
+  if (genrePlaylistEndHandledForPosition === genrePlaylistPosition) return;
+  genrePlaylistEndHandledForPosition = genrePlaylistPosition;
+  void onGenrePlaylistTrackEnded();
+}
+
 /**
  * Hooks play-only controls — once only.
  * Bails early if markup is incomplete; does not toggle `controlsBound` on failure so a later retry is possible.
@@ -433,6 +764,7 @@ function bindAudioControlsOnce() {
     playBtn.disabled = true;
     void (async () => {
       try {
+        if (genrePlaylistMode) loopPlaybackEnabled = false;
         await ensureSpectrumFromUserGesture(audio);
         startSpectrumRenderLoop();
         await audio.play();
@@ -461,6 +793,13 @@ function bindAudioControlsOnce() {
   });
 
   audio.addEventListener("ended", () => {
+    if (genrePlaylistMode && genrePlaylistQueue.length > 0) {
+      if (genrePlaylistEndHandledForPosition !== genrePlaylistPosition) {
+        genrePlaylistEndHandledForPosition = genrePlaylistPosition;
+      }
+      void onGenrePlaylistTrackEnded();
+      return;
+    }
     if (loopPlaybackEnabled) {
       void restartTrackWithLoopFade(audio);
       return;
@@ -480,7 +819,12 @@ function bindAudioControlsOnce() {
 
   audio.addEventListener("timeupdate", () => {
     const d = audio.duration;
-    applyLoopFadeOutVolume(audio);
+    if (genrePlaylistMode) {
+      applyGenrePlaylistFadeOutVolume(audio);
+      maybeAdvanceGenrePlaylistNearEnd(audio);
+    } else {
+      applyLoopFadeOutVolume(audio);
+    }
     const progress =
       Number.isFinite(d) && d > 0 ? (audio.currentTime / d) * 100 : 0;
     progressBar.value = String(progress || 0);
@@ -631,14 +975,22 @@ function bindMusicSelectOnce() {
 }
 
 /**
- * Loads `data/music.json` next to this module and initializes the picker + player.
+ * Loads `data/music.json` + `data/music_genres.json` and initializes the picker + player.
  */
 export async function fetchMusicData() {
   try {
-    const jsonUrl = new URL("../../data/music.json", import.meta.url);
-    const response = await fetch(jsonUrl.href);
-    const data = await response.json();
+    const dataBase = new URL("../../data/", import.meta.url);
+    const [tracksRes, genresRes] = await Promise.all([
+      fetch(new URL("music.json", dataBase).href),
+      fetch(new URL("music_genres.json", dataBase).href),
+    ]);
+    const data = await tracksRes.json();
     musicData = Array.isArray(data) ? data : [];
+    try {
+      musicGenresCatalog = await genresRes.json();
+    } catch {
+      musicGenresCatalog = null;
+    }
     populateMusicSelect();
     bindMusicSelectOnce();
     bindAudioControlsOnce();
@@ -650,6 +1002,7 @@ export async function fetchMusicData() {
     setRangeFillPercent(vs, vs ? (Number(vs.value) || 0) * 100 : 100);
   } catch (_error) {
     musicData = [];
+    musicGenresCatalog = null;
     populateMusicSelect();
   }
 }
@@ -665,6 +1018,7 @@ export function stopMusicPlayback(options = {}) {
     activeFadeResolve = null;
     markSessionListenPause();
     loopPlaybackEnabled = false;
+    clearGenrePlaylistState();
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
@@ -775,18 +1129,34 @@ function formatGenreLabel(genre) {
     .join("-");
 }
 
-/** Unique genre tags from the loaded catalog, sorted alphabetically. */
+/** Genre entries for the landing picker (from music_genres.json when loaded). */
 export function getAvailableGenres() {
+  const catalog = musicGenresCatalog?.genres;
+  if (Array.isArray(catalog) && catalog.length > 0) {
+    return catalog
+      .filter((g) => g.trackCount > 0)
+      .map((g) => ({
+        id: g.id,
+        label: g.label || formatGenreLabel(g.id),
+        trackCount: g.trackCount,
+      }));
+  }
   const seen = new Set();
   for (const song of musicData) {
     for (const genre of normalizeGenres(song)) {
       seen.add(genre.toLowerCase());
     }
   }
-  return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  return Array.from(seen)
+    .sort((a, b) => a.localeCompare(b))
+    .map((id) => ({
+      id,
+      label: formatGenreLabel(id),
+      trackCount: findTrackIndicesByGenre(id).length,
+    }));
 }
 
-/** Fills the landing-page genre picker from `music.json`. */
+/** Fills the landing-page genre picker from the genre catalog. */
 export function populateLandingGenreSelect(selectEl) {
   if (!selectEl) return;
   const genres = getAvailableGenres();
@@ -802,8 +1172,12 @@ export function populateLandingGenreSelect(selectEl) {
   selectEl.disabled = false;
   for (const genre of genres) {
     const opt = document.createElement("option");
-    opt.value = genre;
-    opt.textContent = formatGenreLabel(genre);
+    opt.value = genre.id;
+    const count =
+      Number.isFinite(genre.trackCount) && genre.trackCount > 0
+        ? ` (${genre.trackCount})`
+        : "";
+    opt.textContent = `${genre.label}${count}`;
     selectEl.appendChild(opt);
   }
 }
@@ -873,7 +1247,7 @@ async function autoplaySelectedMusicTrack(selectTrackFn) {
     if (gen !== autoplayGeneration) return false;
 
     startSpectrumRenderLoop();
-    loopPlaybackEnabled = true;
+    loopPlaybackEnabled = !genrePlaylistMode;
     resetSessionListenClock();
     await audio.play();
     return true;
@@ -892,23 +1266,40 @@ async function autoplaySelectedMusicTrack(selectTrackFn) {
  * @returns {Promise<boolean>}
  */
 export async function autoplayRandomMusicTrack() {
+  clearGenrePlaylistState();
   return autoplaySelectedMusicTrack(selectRandomMusicTrack);
 }
 
 /**
- * Pick a random track for the genre, wait until it can play, then start playback.
+ * Play every track in the genre playlist in order; advances when the last track ends.
  * @param {string} genre
  * @returns {Promise<boolean>}
  */
 export async function autoplayMusicTrackByGenre(genre) {
-  const want = String(genre || "").trim().toLowerCase();
-  return autoplaySelectedMusicTrack(() => selectRandomMusicTrackByGenre(want));
+  const want = normalizeGenreKey(genre);
+  const indices = resolveGenrePlaylistIndices(want);
+  if (!indices.length) return false;
+
+  autoplayGeneration += 1;
+  genrePlaylistSession += 1;
+  activeGenrePlaylistId = want;
+  genrePlaylistQueue = indices;
+  genrePlaylistPosition = 0;
+  genrePlaylistMode = true;
+  genrePlaylistAdvancing = false;
+  genrePlaylistEndHandledForPosition = -1;
+  loopPlaybackEnabled = false;
+  selectionLocked = true;
+  resetSessionListenClock();
+
+  return advanceGenrePlaylistFrom(0);
 }
 
 export function resetMusicDemoSession() {
   autoplayGeneration += 1;
   selectionLocked = false;
   loopPlaybackEnabled = false;
+  clearGenrePlaylistState();
   clearLoopFade();
   resetSessionListenClock();
 
