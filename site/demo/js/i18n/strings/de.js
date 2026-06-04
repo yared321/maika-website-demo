@@ -39,16 +39,11 @@ export default {
     },
     access: {
       title: "Demo ausprobieren",
-      copy: "Wähle Musik und Hörzeit, dann starte den geführten Ablauf.",
+      copy: "Wähle deine Musik und starte dann den geführten Ablauf.",
       genreLabel: "Musikgenre",
       genreAria: "Musikgenre",
       genreLoading: "Genres werden geladen…",
       genreEmpty: "Keine Genres verfügbar",
-      durationLabel: "Hörzeit",
-      durationAria: "Hörzeit",
-      duration2Min: "2 Minuten",
-      duration5Min: "5 Minuten",
-      duration10Min: "10 Minuten",
       consentLabel:
         "Ich willige ein, dass mein Gesichtsscan-Video zur Berechnung meiner Biometrie verwendet wird.",
       consentNote:

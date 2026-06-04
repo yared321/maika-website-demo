@@ -39,16 +39,11 @@ export default {
     },
     access: {
       title: "Try the demo",
-      copy: "Choose your music and listening time, then start the guided flow.",
+      copy: "Choose your music, then start the guided flow.",
       genreLabel: "Music genre",
       genreAria: "Music genre",
       genreLoading: "Loading genres…",
       genreEmpty: "No genres available",
-      durationLabel: "Listening duration",
-      durationAria: "Listening duration",
-      duration2Min: "2 minutes",
-      duration5Min: "5 minutes",
-      duration10Min: "10 minutes",
       consentLabel:
         "I give consent to using my face-scan video to calculate my biometrics.",
       consentNote:

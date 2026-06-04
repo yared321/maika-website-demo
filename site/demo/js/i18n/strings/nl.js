@@ -39,16 +39,11 @@ export default {
     },
     access: {
       title: "Probeer de demo",
-      copy: "Kies je muziek en luistertijd, en start daarna de begeleide flow.",
+      copy: "Kies je muziek en start daarna de begeleide flow.",
       genreLabel: "Muziekgenre",
       genreAria: "Muziekgenre",
       genreLoading: "Genres laden…",
       genreEmpty: "Geen genres beschikbaar",
-      durationLabel: "Luistertijd",
-      durationAria: "Luistertijd",
-      duration2Min: "2 minuten",
-      duration5Min: "5 minuten",
-      duration10Min: "10 minuten",
       consentLabel:
         "Ik geef toestemming om mijn gezichtsscan-video te gebruiken voor het berekenen van mijn biometrie.",
       consentNote:
