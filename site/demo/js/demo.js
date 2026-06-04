@@ -43,6 +43,39 @@ const MUSIC_DEFAULT_DURATION_SECONDS = 120;
 /** Wizard steps where the Next button starts hidden (shown once conditions are met). */
 const AUTO_ADVANCE_STEPS = new Set([2]);
 
+/** Debug: filter console with `maika-demo:valence`. */
+function logPostScanValence(tag, state, dom, extra) {
+  console.warn("[maika-demo:valence]", tag, {
+    postScanValenceValue: state.emotionViz.postScanValenceValue,
+    sliderDomValue: dom.valenceSlider?.value ?? null,
+    currentStep: state.currentStep,
+    uploadCompleted: state.upload.completed,
+    uploadInFlight: state.upload.isInFlight,
+    uploadScanPhase: state.upload.scanPhase,
+    ...(extra || {}),
+  });
+}
+
+/** Post-scan valence chosen (not null) → advance to results; null → stay and show error. */
+function handlePostScanUploadComplete(dom, state, controllers) {
+  logPostScanValence("upload-complete:decision", state, dom);
+  if (!state.upload.completed) {
+    logPostScanValence("upload-complete:skipped (upload not completed)", state, dom);
+    return;
+  }
+  if (state.emotionViz.postScanValenceValue != null) {
+    logPostScanValence("upload-complete:auto-advance → results", state, dom);
+    setWizardError(dom, "");
+    syncPostScanValenceForResults(state, controllers);
+    updateStep(dom, state, 3, { controllers });
+    return;
+  }
+  logPostScanValence("upload-complete:stay (value is null)", state, dom);
+  if (dom.nextButton) dom.nextButton.hidden = false;
+  syncWizardNextButton(dom, state);
+  setWizardError(dom, t("errors.valenceRequired"));
+}
+
 try {
   await initI18n(resolveLocale());
 } catch (_error) {
@@ -185,6 +218,7 @@ function createInitialState(stepCount) {
       pendingBlob: null,
       pendingMime: "",
       pendingConsent: true,
+      scanPhase: null,
     },
     assessment: {
       latestResult: null,
@@ -195,7 +229,8 @@ function createInitialState(stepCount) {
       xAxisValencePercent: VALENCE_X_AXIS_DEFAULT,
       xAxisValenceLabel: t("valence.neutral"),
       xAxisValenceEmoji: "😐",
-      postScanValenceConfirmed: false,
+      /** null until the user moves the post-scan slider; then the chosen percent. */
+      postScanValenceValue: null,
     },
     musicGate: {
       proceedMinSeconds: MUSIC_PROCEED_MIN_SECONDS,
@@ -220,7 +255,8 @@ function createInitialState(stepCount) {
 function createControllers(dom, state) {
   const score = ScoreVisualizationController.create({
     root: dom.wizardForm,
-    getValence: () => state.emotionViz.xAxisValencePercent,
+    getValence: () =>
+      state.emotionViz.postScanValenceValue ?? state.emotionViz.xAxisValencePercent,
     getArousal: () => computeMusicResponseArousal(state),
     getBaselineArousal: () => state.assessment.baselineArousal,
     getPostArousal: () => state.assessment.postArousal,
@@ -233,11 +269,14 @@ function createControllers(dom, state) {
     emojiEl: dom.valenceEmoji,
     defaultValue: VALENCE_X_AXIS_DEFAULT,
     onChange: (valenceState) => {
+      state.emotionViz.postScanValenceValue = valenceState.xAxisValencePercent;
       state.emotionViz.xAxisValencePercent = valenceState.xAxisValencePercent;
       state.emotionViz.xAxisValenceLabel = valenceState.xAxisValenceLabel;
       state.emotionViz.xAxisValenceEmoji = valenceState.xAxisValenceEmoji;
-      if (state.currentStep === 2) {
-        state.emotionViz.postScanValenceConfirmed = true;
+      logPostScanValence("slider-changed", state, dom, {
+        label: valenceState.xAxisValenceLabel,
+      });
+      if (state.currentStep === 2 && state.upload.completed) {
         setWizardError(dom, "");
         syncWizardNextButton(dom, state);
       }
@@ -269,11 +308,12 @@ function initializeUi(dom, state) {
  * Start the post-music face scan exactly once from wizard step 3.
  * This prevents duplicate camera requests and keeps alignment state stable.
  */
-function startPostScanCapture(dom, state) {
+function startPostScanCapture(dom, state, controllers) {
   moveFaceScanApp(dom, "post");
   setFaceScanConsentRequired(false);
   resetValencePlacementForScan(dom);
-  state.emotionViz.postScanValenceConfirmed = false;
+  state.emotionViz.postScanValenceValue = null;
+  controllers?.valence?.resetToNone();
   resetUploadState(state);
   clearRecordedPreview(dom, state);
   syncRecordAgainButton(dom, false);
@@ -304,18 +344,28 @@ function bindEvents(dom, state, controllers) {
     state.upload.pendingMime = detail.recordedMime || detail.blob.type || "";
     state.upload.pendingConsent = detail.consentGiven !== false;
     state.upload.completed = false;
-    if (state.currentStep === 2) {
-      state.emotionViz.postScanValenceConfirmed = false;
-    }
+    state.upload.scanPhase =
+      state.currentStep === 0 ? "baseline" : state.currentStep === 2 ? "post" : null;
+    logPostScanValence("blob-ready:before upload", state, dom);
     applyRecordedPreview(dom, state, detail.blob);
     if (state.currentStep === 2 && dom.nextButton) dom.nextButton.hidden = true;
     void startFaceUpload(dom, state, setWizardError);
     syncFaceStepNextGate(dom, state);
   });
 
+  document.addEventListener("maika-demo:face-upload-complete", (ev) => {
+    const scanPhase = ev?.detail?.scanPhase;
+    if (scanPhase === "baseline" && state.currentStep === 0 && state.upload.completed) {
+      updateStep(dom, state, 1);
+      return;
+    }
+    if (scanPhase === "post") {
+      handlePostScanUploadComplete(dom, state, controllers);
+    }
+  });
+
   document.addEventListener("maika-demo:face-scan-blob-cleared", () => {
     resetUploadState(state);
-    state.emotionViz.postScanValenceConfirmed = false;
     clearRecordedPreview(dom, state);
     syncRecordAgainButton(dom, false);
     syncFaceStepNextGate(dom, state);
@@ -329,25 +379,11 @@ function bindEvents(dom, state, controllers) {
     placeValenceInScanIntro(dom);
   });
 
-  document.addEventListener("maika-demo:face-upload-complete", (ev) => {
-    const phase = ev?.detail?.scanPhase;
-    if (phase === "baseline" && state.currentStep === 0 && state.upload.completed) {
-      updateStep(dom, state, 1);
-      return;
-    }
-    if (phase === "post" && state.currentStep === 2 && state.upload.completed) {
-      if (dom.nextButton) dom.nextButton.hidden = false;
-      syncWizardNextButton(dom, state);
-      if (!state.emotionViz.postScanValenceConfirmed) {
-        setWizardError(dom, t("errors.valenceRequired"));
-      }
-    }
-  });
-
   dom.btnRecordAgain?.addEventListener("click", () => {
     if (state.upload.isInFlight) return;
     resetUploadState(state);
-    state.emotionViz.postScanValenceConfirmed = false;
+    state.emotionViz.postScanValenceValue = null;
+    controllers?.valence?.resetToNone();
     clearRecordedPreview(dom, state);
     setWizardError(dom, "");
     syncRecordAgainButton(dom, false);
@@ -427,7 +463,7 @@ function updateStep(dom, state, targetStep, options = {}) {
   }
 
   if (targetStep === 2) {
-    startPostScanCapture(dom, state);
+    startPostScanCapture(dom, state, options.controllers);
   }
 
   if (targetStep === 3) {
@@ -508,7 +544,6 @@ function syncPostScanValenceForResults(state, controllers) {
   state.emotionViz.xAxisValencePercent = valenceState.xAxisValencePercent;
   state.emotionViz.xAxisValenceLabel = valenceState.xAxisValenceLabel;
   state.emotionViz.xAxisValenceEmoji = valenceState.xAxisValenceEmoji;
-  state.emotionViz.postScanValenceConfirmed = true;
 }
 
 function setWizardError(dom, message) {
@@ -578,7 +613,7 @@ async function handleNextClick(dom, state, controllers) {
       setWizardError(dom, t("errors.recordingRequired"));
       return;
     }
-    if (!state.emotionViz.postScanValenceConfirmed) {
+    if (state.emotionViz.postScanValenceValue == null) {
       setWizardError(dom, t("errors.valenceRequired"));
       return;
     }
@@ -615,7 +650,7 @@ function returnToLandingPage(dom, state, controllers) {
   Object.assign(state, initialState);
 
   if (controllers.valence) {
-    controllers.valence.setValue(VALENCE_X_AXIS_DEFAULT);
+    controllers.valence.resetToNone();
   }
 
   if (controllers.score) {

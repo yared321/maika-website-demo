@@ -18,7 +18,7 @@ export function syncWizardNextButton(dom, state) {
     dom.nextButton.disabled =
       state.upload.isInFlight ||
       !state.upload.completed ||
-      !state.emotionViz.postScanValenceConfirmed;
+      state.emotionViz.postScanValenceValue == null;
     return;
   }
   dom.nextButton.disabled = false;

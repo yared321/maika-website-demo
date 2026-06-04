@@ -173,6 +173,7 @@ export function resetUploadState(state) {
   state.upload.pendingBlob = null;
   state.upload.pendingMime = "";
   state.upload.pendingConsent = true;
+  state.upload.scanPhase = null;
 }
 
 /**
@@ -224,8 +225,7 @@ export async function startFaceUpload(dom, state, setWizardError) {
     return;
   }
 
-  const scanPhase =
-    state.currentStep === 0 ? "baseline" : state.currentStep === 2 ? "post" : null;
+  const scanPhase = state.upload.scanPhase;
 
   state.upload.isInFlight = true;
   setWizardError(dom, "");
@@ -258,6 +258,7 @@ export async function startFaceUpload(dom, state, setWizardError) {
       state.upload.pendingBlob = null;
       state.upload.pendingMime = "";
       setWizardError(dom, "");
+      state.upload.isInFlight = false;
       syncFaceStepNextGate(dom, state);
       if (scanPhase) {
         document.dispatchEvent(

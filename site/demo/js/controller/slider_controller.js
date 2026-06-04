@@ -20,11 +20,21 @@ export class ValenceSliderController {
 
   init() {
     if (!this.sliderEl) return;
-    this.sliderEl.value = String(this.defaultValue);
-    this.updateFromRaw(this.sliderEl.value);
+    this.resetToNone();
     this.sliderEl.addEventListener("input", () => {
       this.updateFromRaw(this.sliderEl.value);
     });
+  }
+
+  /** Unset state: no value chosen yet (wizard post-scan gate). Does not fire onChange. */
+  resetToNone() {
+    if (this.sliderEl) this.sliderEl.value = String(this.defaultValue);
+    this.state.xAxisValencePercent = this.defaultValue;
+    this.state.xAxisValenceLabel = "";
+    this.state.xAxisValenceEmoji = "😐";
+    if (this.valueEl) this.valueEl.textContent = "—";
+    if (this.hintEl) this.hintEl.textContent = "";
+    if (this.emojiEl) this.emojiEl.textContent = "😐";
   }
 
   clampAndRound(rawValue) {
