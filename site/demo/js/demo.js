@@ -2,6 +2,7 @@ import { initI18n, resolveLocale, t } from "./i18n/index.js";
 import {
   fetchMusicData,
   MUSIC_PROGRESS_EVENT,
+  MUSIC_GENRE_PLAYLIST_COMPLETE_EVENT,
   interruptMusicFadeOut,
   autoplayMusicTrackByGenre,
   populateLandingGenreSelect,
@@ -37,8 +38,6 @@ var MUSIC_FADE_MS_ON_BACK_TO_DEMOGRAPHIC = 3000;
 const VALENCE_X_AXIS_DEFAULT = 0;
 /** Earliest manual proceed to face scan (button enabled). */
 const MUSIC_PROCEED_MIN_SECONDS = 30;
-/** Default listening session length (2 minutes) when landing duration is unset. */
-const MUSIC_DEFAULT_DURATION_SECONDS = 120;
 
 /** Wizard steps where the Next button starts hidden (shown once conditions are met). */
 const AUTO_ADVANCE_STEPS = new Set([2]);
@@ -137,13 +136,10 @@ function startDemoFromLanding(dom, state, updateStep) {
 }
 
 function applyLandingPreferences(dom, state) {
-  const duration = Number(dom.landingDurationSelect?.value) || MUSIC_DEFAULT_DURATION_SECONDS;
   const genre = String(dom.landingGenreSelect?.value || "").trim();
 
   state.preferences.genre = genre;
-  state.preferences.durationSeconds = duration;
   state.musicGate.selectedGenre = genre;
-  state.musicGate.proceedMinSeconds = Math.min(MUSIC_PROCEED_MIN_SECONDS, duration);
 }
 
 function setLandingError(dom, message) {
@@ -168,7 +164,6 @@ function getDomReferences() {
     demoAccessError: document.getElementById("demo-access-error"),
     faceConsentCheckbox: document.getElementById("face-consent-checkbox"),
     landingGenreSelect: document.getElementById("landing-genre-select"),
-    landingDurationSelect: document.getElementById("landing-duration-select"),
     wizardForm,
     steps: wizardForm ? Array.from(wizardForm.querySelectorAll(".wizard-step")) : [],
     backButton: wizardForm?.querySelector('[data-action="back"]'),
@@ -240,7 +235,6 @@ function createInitialState(stepCount) {
     },
     preferences: {
       genre: "",
-      durationSeconds: MUSIC_DEFAULT_DURATION_SECONDS,
     },
     nextButtonLabels: new Map([
       [0, t("wizard.nextContinue")],
@@ -335,6 +329,14 @@ function bindEvents(dom, state, controllers) {
       state.musicGate.requirementMet = true;
       syncWizardNextButton(dom, state);
     }
+  });
+
+  document.addEventListener(MUSIC_GENRE_PLAYLIST_COMPLETE_EVENT, () => {
+    if (state.currentStep !== 1) return;
+    state.musicGate.requirementMet = true;
+    setWizardError(dom, "");
+    interruptMusicFadeOut();
+    updateStep(dom, state, 2, { controllers });
   });
 
   document.addEventListener("maika-demo:face-scan-blob-ready", (ev) => {
