@@ -36,6 +36,9 @@ const UPLOAD_STATUS = {
   error: "error",
 };
 
+/** Brief snap-to-full before success UI and wizard auto-advance. */
+const UPLOAD_FINISH_ANIM_MS = 320;
+
 /**
  * Show or hide the result-panel "Record again" control.
  * @param {Record<string, HTMLElement|null>} dom
@@ -83,17 +86,25 @@ function setUploadProgressFill(dom, percent) {
 function setUploadUiState(dom, state, mode, label) {
   if (!dom.uploadStatusCard) return;
   stopUploadPulse(state);
-  dom.uploadStatusCard.classList.remove("is-uploading", "is-success", "is-error");
+  dom.uploadStatusCard.classList.remove(
+    "is-uploading",
+    "is-finishing",
+    "is-success",
+    "is-error",
+  );
 
   if (mode === "uploading") {
     dom.uploadStatusCard.classList.add("is-uploading");
-    setUploadProgressFill(dom, 16);
-    let phase = 16;
+    let progress = 10;
+    setUploadProgressFill(dom, progress);
     state.upload.pulseTimer = globalThis.setInterval(() => {
-      phase += 14;
-      if (phase > 86) phase = 24;
-      setUploadProgressFill(dom, phase);
-    }, 260);
+      const cap = 92;
+      if (progress >= cap) return;
+      const remaining = cap - progress;
+      const step = Math.max(0.35, remaining * 0.055);
+      progress = Math.min(cap, progress + step);
+      setUploadProgressFill(dom, progress);
+    }, 400);
   } else if (mode === "success") {
     dom.uploadStatusCard.classList.add("is-success");
     setUploadProgressFill(dom, 100);
@@ -115,13 +126,27 @@ export function syncFaceStepNextGate(dom, state) {
 }
 
 /**
- * Stop upload progress pulse timer if active.
+ * Stop the upload progress creep timer if active.
  * @param {Record<string, any>} state
  */
 export function stopUploadPulse(state) {
   if (!state.upload.pulseTimer) return;
   globalThis.clearInterval(state.upload.pulseTimer);
   state.upload.pulseTimer = 0;
+}
+
+/**
+ * Rapidly complete the progress bar to 100% before success / step advance.
+ * @param {Record<string, HTMLElement|null>} dom
+ * @param {Record<string, any>} state
+ */
+async function playUploadProgressFinish(dom, state) {
+  stopUploadPulse(state);
+  if (!dom.uploadStatusCard) return;
+  dom.uploadStatusCard.classList.add("is-finishing");
+  setUploadProgressFill(dom, 100);
+  await new Promise((resolve) => globalThis.setTimeout(resolve, UPLOAD_FINISH_ANIM_MS));
+  dom.uploadStatusCard.classList.remove("is-finishing");
 }
 
 /**
@@ -244,8 +269,6 @@ export async function startFaceUpload(dom, state, setWizardError) {
 
     if (uploadResult.ok) {
       state.upload.completed = true;
-      setUploadUiState(dom, state, "success", uploadStatusLabel(UPLOAD_STATUS.success));
-      syncRecordAgainButton(dom, false);
       if (uploadResult.data && typeof uploadResult.data === "object") {
         state.assessment.latestResult = uploadResult.data;
         const arousal = extractArousalFromResult(uploadResult.data);
@@ -257,8 +280,13 @@ export async function startFaceUpload(dom, state, setWizardError) {
       }
       state.upload.pendingBlob = null;
       state.upload.pendingMime = "";
-      setWizardError(dom, "");
       state.upload.isInFlight = false;
+
+      await playUploadProgressFinish(dom, state);
+
+      setUploadUiState(dom, state, "success", uploadStatusLabel(UPLOAD_STATUS.success));
+      syncRecordAgainButton(dom, false);
+      setWizardError(dom, "");
       syncFaceStepNextGate(dom, state);
       if (scanPhase) {
         document.dispatchEvent(

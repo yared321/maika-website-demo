@@ -587,7 +587,7 @@
       rgba(223, 122, 254, 0.95)
     );
     border-radius: inherit;
-    transition: width 240ms ease;
+    transition: width 520ms ease-out;
   }
 
   .upload-progress-dot {
@@ -601,24 +601,18 @@
     background: #fff;
     border: 2px solid rgba(129, 74, 200, 0.95);
     box-shadow: 0 0 0 3px rgba(223, 122, 254, 0.24);
-    transition: left 240ms ease;
-  }
-
-  .upload-status-card.is-uploading .upload-progress-track::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      100deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.35) 50%,
-      transparent 100%
-    );
-    animation: upload-sweep 1.3s linear infinite;
+    transition: left 520ms ease-out;
   }
 
   .upload-status-card.is-uploading .upload-status-label {
     color: #ded2ff;
+  }
+
+  .upload-status-card.is-finishing .upload-progress-fill,
+  .upload-status-card.is-finishing .upload-progress-dot {
+    transition:
+      width 220ms ease-out,
+      left 220ms ease-out;
   }
 
   .upload-status-card.is-success .upload-status-label {
@@ -629,15 +623,6 @@
     color: var(--danger);
   }
 
-  @keyframes upload-sweep {
-    from {
-      transform: translateX(-120%);
-    }
-    to {
-      transform: translateX(120%);
-    }
-  }
-  
   .error {
     margin-top: 1rem;
     padding: 0.75rem 1rem;
