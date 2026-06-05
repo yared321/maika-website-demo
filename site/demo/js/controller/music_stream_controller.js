@@ -1271,7 +1271,7 @@ export async function autoplayRandomMusicTrack() {
 }
 
 /**
- * Play every track in the genre playlist in order; advances when the last track ends.
+ * Play one random track from the genre; advances to face scan when it ends.
  * @param {string} genre
  * @returns {Promise<boolean>}
  */
@@ -1283,7 +1283,7 @@ export async function autoplayMusicTrackByGenre(genre) {
   autoplayGeneration += 1;
   genrePlaylistSession += 1;
   activeGenrePlaylistId = want;
-  genrePlaylistQueue = indices;
+  genrePlaylistQueue = [indices[Math.floor(Math.random() * indices.length)]];
   genrePlaylistPosition = 0;
   genrePlaylistMode = true;
   genrePlaylistAdvancing = false;
