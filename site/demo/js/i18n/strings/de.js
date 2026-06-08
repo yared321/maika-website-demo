@@ -18,22 +18,22 @@ export default {
 
   landing: {
     ariaLabel: "Demo-Übersicht",
-    kicker: "Interaktive Demo",
-    title: "Entdecke deine emotionale Reaktion auf Musik in einem geführten Ablauf.",
+    kicker: "Live Demo",
+    title: "Erlebe den Effekt von Musik auf dein Nervensystem – live in unserer Maika-Demo-Session.",
     copy:
-      "Diese Erfahrung verbindet Musikhören, einen kurzen Gesichtsscan und sofortiges Feedback zu deiner biometrischen und emotionalen Reaktion auf Musik.",
+      "Musik hören, ein kurzer Gesichtsscan, sofortiges Feedback – in wenigen Minuten.",
     points: {
-      consent: "Einwilligung vor Kamerazugriff",
+      consent: "Einwilligung für Kamerazugriff",
       upload: "Automatischer Upload + Auswertung",
       result: "Ergebnisansicht",
     },
     steps: {
       step1Title: "Schritt 1",
-      step1Desc: "Basis-Gesichtsscan",
+      step1Desc: "Ausgangsmessung (Ruhe-Scan)",
       step2Title: "Schritt 2",
-      step2Desc: "Hören",
+      step2Desc: "Musik hören",
       step3Title: "Schritt 3",
-      step3Desc: "Gesicht scannen",
+      step3Desc: "Messung während der Musik",
       step4Title: "Schritt 4",
       step4Desc: "Ergebnis ansehen",
     },
@@ -60,8 +60,8 @@ export default {
     nextProceedFaceScan: "Weiter zum Gesichtsscan",
     nextDone: "Fertig",
     faceScan: {
-      baselineTitle: "Basis-Gesichtsscan",
-      baselineSubtitle: "Dein Basis-Scan vor dem Musikhören.",
+      baselineTitle: "Ausgangsmessung",
+      baselineSubtitle: "Deine Ausgangsmessung in Ruhe.",
       postTitle: "Gesichtsscan",
       postSubtitle: "Scanne erneut nach dem Musikhören.",
       scanIntroTitle: "So geht's",
@@ -93,13 +93,13 @@ export default {
       mapAria:
         "Emotionskonstellation mit Valenz auf der x-Achse und Arousal auf der y-Achse",
       completeBothScans:
-        "Schließe beide Gesichtsscans ab, um den Unterschied zwischen Basis und nach Musik zu sehen.",
+        "Schließe beide Messungen ab, um den Unterschied zwischen Ausgangsmessung und nach der Musik zu sehen.",
       activationUnchanged:
         "Dein Aktivierungsniveau blieb nach der Musik fast unverändert.",
       activationHigher:
-        "Dein Gesichtsscan nach Musik zeigt höhere Aktivierung als die Basis.",
+        "Deine Abschlussmessung zeigt eine höhere Aktivierung als vor der Musik. Die Musik hat dich aktiviert.",
       activationLower:
-        "Dein Gesichtsscan nach Musik zeigt niedrigere Aktivierung als die Basis.",
+        "Deine Abschlussmessung zeigt eine niedrigere Aktivierung als vor der Musik. Die Musik hat dich entspannt.",
       modes: {
         angry: "Wütend",
         afraid: "Ängstlich",
