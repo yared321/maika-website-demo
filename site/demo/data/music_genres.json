@@ -37,13 +37,11 @@
     {
       "id": "techno",
       "label": "Techno",
-      "trackCount": 7,
+      "trackCount": 5,
       "trackIds": [
         "trk_2cbf55cb-bca9-408d-b882-4cebbdadcd42",
         "trk_0b303319-61a4-4f43-9093-b05e3a6bddff",
         "trk_fc4c0f3a-1780-4866-b487-e5b316e0bb0b",
-        "trk_6c2a0252-8982-4681-af73-6708a0b38ada",
-        "trk_4b75e7b0-ea90-48c9-80fd-be03987594c5",
         "trk_cd21b2a9-23a7-439d-a2a8-f5b2d5deb022",
         "trk_10f76540-9487-4204-8368-8f566b480c20"
       ]
@@ -64,14 +62,13 @@
     {
       "id": "electronic chill",
       "label": "Electronic Chill",
-      "trackCount": 6,
+      "trackCount": 5,
       "trackIds": [
         "trk_e698053e-c7bb-4abe-a4be-a0645deb4356",
         "trk_82fd85cb-2280-4700-ad7d-055580936815",
         "trk_cea2747a-5223-4fb4-8211-ca111d9c8219",
         "trk_51626d42-f94b-457e-9fe8-ab4201a0a05a",
-        "trk_d9ffb088-3291-450f-a53b-7794232ae8f7",
-        "trk_4685c44a-8f97-45dc-a79f-702ff4c12cf4"
+        "trk_d9ffb088-3291-450f-a53b-7794232ae8f7"
       ]
     },
     {
@@ -112,10 +109,8 @@
     {
       "id": "jazz",
       "label": "Jazz",
-      "trackCount": 4,
+      "trackCount": 2,
       "trackIds": [
-        "trk_859abe31-b83d-42ed-94f6-d9c13999b8f1",
-        "trk_af7f8104-374d-46e9-884b-547d94b235b4",
         "trk_6f8e4bcd-fedc-45f5-9bca-e80dd96f73cb",
         "trk_acfa9a53-3f4b-46f0-85ed-473c8594ff3d"
       ]
@@ -149,10 +144,8 @@
     {
       "id": "funk",
       "label": "Funk",
-      "trackCount": 1,
-      "trackIds": [
-        "trk_074ef593-17f1-43be-8e3c-9e2e1cd78920"
-      ]
+      "trackCount": 0,
+      "trackIds": []
     },
     {
       "id": "noise",
@@ -175,7 +168,6 @@
     "trk_99597119-55d9-414c-b4a1-edfbce164cab": "neo-classical",
     "trk_716ba9c9-7adf-4b9d-82a1-3afbff444393": "neo-classical",
     "trk_832259f8-a857-4098-bebe-1aa82b1323a3": "lofi",
-    "trk_859abe31-b83d-42ed-94f6-d9c13999b8f1": "jazz",
     "trk_665b0788-e6de-48eb-b582-35448567eab8": "ambient",
     "trk_8807630c-e278-4df7-ae02-c0a27366e3fe": "classic",
     "trk_931addd8-02d7-494e-8d4a-9f6f4022d28f": "nature",
@@ -190,7 +182,6 @@
     "trk_2cab4dbe-8499-4f1e-a10a-135374cb07fe": "classic",
     "trk_02928e3d-fd39-401c-81ee-66eb75411ca1": "nature",
     "trk_24b4136d-ccca-4c3b-a9b9-c3881a855d48": "ambient",
-    "trk_af7f8104-374d-46e9-884b-547d94b235b4": "jazz",
     "trk_82fd85cb-2280-4700-ad7d-055580936815": "electronic chill",
     "trk_945c626d-47da-4b5c-9a82-a93808767c35": "classic",
     "trk_cea2747a-5223-4fb4-8211-ca111d9c8219": "electronic chill",
@@ -202,10 +193,7 @@
     "trk_26784cfe-0690-423c-8310-1ca7b9ba19c0": "ambient",
     "trk_78f4382d-96c7-4a1f-92e2-7644ea74d666": "synthwave",
     "trk_8cf1452e-2b56-4249-9bcb-890bb65bab0b": "ambient",
-    "trk_6c2a0252-8982-4681-af73-6708a0b38ada": "techno",
     "trk_41f4fe07-64bd-4395-9276-40c9a6b0a711": "neo-classical",
-    "trk_4b75e7b0-ea90-48c9-80fd-be03987594c5": "techno",
-    "trk_074ef593-17f1-43be-8e3c-9e2e1cd78920": "funk",
     "trk_cd21b2a9-23a7-439d-a2a8-f5b2d5deb022": "techno",
     "trk_01351bd2-312d-4251-8947-80794dbebd5d": "drone",
     "trk_504202e4-ed13-4300-8113-8d51f0e6d443": "neo-classical",
@@ -223,7 +211,6 @@
     "trk_2b260e6e-3f21-43d3-a1b2-eb4d4d9b99a7": "ambient",
     "trk_5700add5-3c34-4be0-8842-8c6a4b22c747": "folk",
     "trk_25fec769-8aed-4756-b9da-713fe51094bd": "nature",
-    "trk_4685c44a-8f97-45dc-a79f-702ff4c12cf4": "electronic chill",
     "trk_acfa9a53-3f4b-46f0-85ed-473c8594ff3d": "jazz",
     "trk_e0f92d6e-c1c3-4b7c-8081-342b887b9724": "noise"
   },
@@ -254,8 +241,6 @@
       "trk_2cbf55cb-bca9-408d-b882-4cebbdadcd42",
       "trk_0b303319-61a4-4f43-9093-b05e3a6bddff",
       "trk_fc4c0f3a-1780-4866-b487-e5b316e0bb0b",
-      "trk_6c2a0252-8982-4681-af73-6708a0b38ada",
-      "trk_4b75e7b0-ea90-48c9-80fd-be03987594c5",
       "trk_cd21b2a9-23a7-439d-a2a8-f5b2d5deb022",
       "trk_10f76540-9487-4204-8368-8f566b480c20"
     ],
@@ -272,8 +257,7 @@
       "trk_82fd85cb-2280-4700-ad7d-055580936815",
       "trk_cea2747a-5223-4fb4-8211-ca111d9c8219",
       "trk_51626d42-f94b-457e-9fe8-ab4201a0a05a",
-      "trk_d9ffb088-3291-450f-a53b-7794232ae8f7",
-      "trk_4685c44a-8f97-45dc-a79f-702ff4c12cf4"
+      "trk_d9ffb088-3291-450f-a53b-7794232ae8f7"
     ],
     "synthwave": [
       "trk_7d1a4369-5f94-4f03-ba4c-25f7e3d63696",
@@ -296,8 +280,6 @@
       "trk_91a06c57-2313-41a5-ab69-ac7d9cf5731d"
     ],
     "jazz": [
-      "trk_859abe31-b83d-42ed-94f6-d9c13999b8f1",
-      "trk_af7f8104-374d-46e9-884b-547d94b235b4",
       "trk_6f8e4bcd-fedc-45f5-9bca-e80dd96f73cb",
       "trk_acfa9a53-3f4b-46f0-85ed-473c8594ff3d"
     ],
@@ -312,9 +294,7 @@
     "drone": [
       "trk_01351bd2-312d-4251-8947-80794dbebd5d"
     ],
-    "funk": [
-      "trk_074ef593-17f1-43be-8e3c-9e2e1cd78920"
-    ],
+    "funk": [],
     "noise": [
       "trk_e0f92d6e-c1c3-4b7c-8081-342b887b9724"
     ]
