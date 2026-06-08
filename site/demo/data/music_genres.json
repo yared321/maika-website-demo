@@ -150,10 +150,8 @@
     {
       "id": "noise",
       "label": "Noise",
-      "trackCount": 1,
-      "trackIds": [
-        "trk_e0f92d6e-c1c3-4b7c-8081-342b887b9724"
-      ]
+      "trackCount": 0,
+      "trackIds": []
     }
   ],
   "trackToGenre": {
@@ -211,8 +209,7 @@
     "trk_2b260e6e-3f21-43d3-a1b2-eb4d4d9b99a7": "ambient",
     "trk_5700add5-3c34-4be0-8842-8c6a4b22c747": "folk",
     "trk_25fec769-8aed-4756-b9da-713fe51094bd": "nature",
-    "trk_acfa9a53-3f4b-46f0-85ed-473c8594ff3d": "jazz",
-    "trk_e0f92d6e-c1c3-4b7c-8081-342b887b9724": "noise"
+    "trk_acfa9a53-3f4b-46f0-85ed-473c8594ff3d": "jazz"
   },
   "tracksByGenre": {
     "ambient": [
@@ -295,8 +292,6 @@
       "trk_01351bd2-312d-4251-8947-80794dbebd5d"
     ],
     "funk": [],
-    "noise": [
-      "trk_e0f92d6e-c1c3-4b7c-8081-342b887b9724"
-    ]
+    "noise": []
   }
 }

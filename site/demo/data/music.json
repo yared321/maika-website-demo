@@ -548,15 +548,5 @@
             "jazz"
         ],
         "image": "/demo/data/images/61_offbeat_aria.png"
-    },
-    {
-        "id": "trk_e0f92d6e-c1c3-4b7c-8081-342b887b9724",
-        "title": "White Noise",
-        "artist": "Maika AI",
-        "url": "https://storage.googleapis.com/maika-demo-audio/tracks/demo/White%20Noise.mp3",
-        "genres": [
-            "noise"
-        ],
-        "image": "/demo/data/images/62_white_noise.png"
     }
 ]
