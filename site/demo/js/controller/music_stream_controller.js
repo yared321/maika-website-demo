@@ -1129,17 +1129,26 @@ function formatGenreLabel(genre) {
     .join("-");
 }
 
+function sortGenresByTrackCount(genres) {
+  return genres.sort((a, b) => {
+    const diff = (b.trackCount || 0) - (a.trackCount || 0);
+    return diff !== 0 ? diff : a.label.localeCompare(b.label);
+  });
+}
+
 /** Genre entries for the landing picker (from music_genres.json when loaded). */
 export function getAvailableGenres() {
   const catalog = musicGenresCatalog?.genres;
   if (Array.isArray(catalog) && catalog.length > 0) {
-    return catalog
-      .filter((g) => g.trackCount > 0)
-      .map((g) => ({
-        id: g.id,
-        label: g.label || formatGenreLabel(g.id),
-        trackCount: g.trackCount,
-      }));
+    return sortGenresByTrackCount(
+      catalog
+        .filter((g) => g.trackCount > 0)
+        .map((g) => ({
+          id: g.id,
+          label: g.label || formatGenreLabel(g.id),
+          trackCount: g.trackCount,
+        })),
+    );
   }
   const seen = new Set();
   for (const song of musicData) {
@@ -1147,13 +1156,13 @@ export function getAvailableGenres() {
       seen.add(genre.toLowerCase());
     }
   }
-  return Array.from(seen)
-    .sort((a, b) => a.localeCompare(b))
-    .map((id) => ({
+  return sortGenresByTrackCount(
+    Array.from(seen).map((id) => ({
       id,
       label: formatGenreLabel(id),
       trackCount: findTrackIndicesByGenre(id).length,
-    }));
+    })),
+  );
 }
 
 /** Fills the landing-page genre picker from the genre catalog. */
