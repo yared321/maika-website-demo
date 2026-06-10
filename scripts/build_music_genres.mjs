@@ -54,4 +54,14 @@ const out = {
 };
 
 writeFileSync(join(root, "music_genres.json"), `${JSON.stringify(out, null, 2)}\n`);
+
+const covers = Object.fromEntries(
+  tracks.filter((t) => t.title && t.image).map((t) => [t.title, t.image]),
+);
+writeFileSync(
+  join(root, "..", "assets", "track-covers.json"),
+  `${JSON.stringify(covers, null, 2)}\n`,
+);
+
 console.log("Wrote music_genres.json", genres.map((g) => `${g.label}: ${g.trackCount}`).join(", "));
+console.log("Wrote track-covers.json", Object.keys(covers).length, "entries");
