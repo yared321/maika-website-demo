@@ -14,6 +14,9 @@ export default {
     brandTagline: "AI music for your health",
     demo: "Demo",
     primaryAria: "Primary",
+    languageAria: "Select language",
+    localeDe: "Deutsch",
+    localeEn: "English",
   },
 
   landing: {

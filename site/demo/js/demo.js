@@ -1,4 +1,4 @@
-import { initI18n, resolveLocale, t } from "./i18n/index.js";
+import { getLocale, initI18n, resolveLocale, setLocale, t } from "./i18n/index.js";
 import {
   fetchMusicData,
   MUSIC_PROGRESS_EVENT,
@@ -15,6 +15,7 @@ import { applyDefaultDemographics } from "./controller/demographic_form_controll
 import {
   applyRecordedPreview,
   clearRecordedPreview,
+  refreshUploadStatusLabel,
   resetUploadState,
   startFaceUpload,
   stopUploadPulse,
@@ -90,17 +91,77 @@ try {
 } catch (_error) {
 }
 
+/** @type {{ dom: ReturnType<typeof getDomReferences>, state: Record<string, any>, controllers: Record<string, any> } | null} */
+let wizardRuntime = null;
+
 initDemoWizard();
 
 function initDemoWizard() {
   const dom = getDomReferences();
+  bindLocaleSwitcher(dom);
+
   if (!dom.wizardForm) return;
 
   const state = createInitialState(dom.steps.length);
   const controllers = createControllers(dom, state);
+  wizardRuntime = { dom, state, controllers };
 
   initializeUi(dom, state);
   bindEvents(dom, state, controllers);
+}
+
+function bindLocaleSwitcher(dom) {
+  if (!dom.localeSelect) return;
+  dom.localeSelect.value = getLocale();
+  dom.localeSelect.addEventListener("change", () => {
+    void handleLocaleChange(String(dom.localeSelect?.value || ""));
+  });
+}
+
+function refreshNextButtonLabels(state) {
+  state.nextButtonLabels = new Map([
+    [0, t("wizard.nextContinue")],
+    [1, t("wizard.nextProceedFaceScan")],
+    [3, t("wizard.nextDone")],
+  ]);
+}
+
+async function handleLocaleChange(locale) {
+  await setLocale(locale);
+  const dom = getDomReferences();
+  if (dom.localeSelect) dom.localeSelect.value = getLocale();
+
+  if (!wizardRuntime) return;
+
+  const { state, controllers } = wizardRuntime;
+  refreshNextButtonLabels(state);
+  populateLandingGenreSelect(dom.landingGenreSelect);
+  syncLandingTryButton(dom);
+  refreshUploadStatusLabel(dom);
+
+  if (state.emotionViz.postScanValenceValue != null && controllers.valence?.sliderEl) {
+    controllers.valence.updateFromRaw(controllers.valence.sliderEl.value);
+  }
+
+  if (dom.faceScanHostPre?.contains(dom.faceScanApp)) {
+    moveFaceScanApp(dom, "pre");
+  } else if (dom.faceScanHostPost?.contains(dom.faceScanApp)) {
+    moveFaceScanApp(dom, "post");
+  }
+
+  if (!dom.demoFlow?.hidden) {
+    refreshWizardChromeForLocale(dom, state, controllers);
+  }
+}
+
+function refreshWizardChromeForLocale(dom, state, controllers) {
+  if (dom.nextButton) {
+    dom.nextButton.textContent =
+      state.nextButtonLabels.get(state.currentStep) ?? t("wizard.next");
+  }
+  if (state.currentStep === 3) {
+    controllers.score?.render?.();
+  }
 }
 
 function unlockDemoFlow(dom) {
@@ -158,6 +219,7 @@ function syncLandingTryButton(dom) {
 function getDomReferences() {
   const wizardForm = document.getElementById("demoWizardForm");
   return {
+    localeSelect: document.getElementById("locale-select"),
     demoLanding: document.getElementById("demo-landing"),
     demoFlow: document.getElementById("demo-flow"),
     demoAccessButton: document.getElementById("demo-access-cta"),

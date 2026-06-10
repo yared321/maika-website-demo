@@ -11,10 +11,15 @@
 import en from "./strings/en.js";
 
 /**
- * Demo language — change here: `"en"`, `"nl"`, or `"de"`.
+ * Default demo language when nothing is stored in session.
  * @type {"en" | "nl" | "de"}
  */
 export const DEMO_LOCALE = "de";
+
+/** Locales shown in the header language picker. */
+export const UI_LOCALES = Object.freeze(["de", "en"]);
+
+const LOCALE_STORAGE_KEY = "maika-demo-locale";
 
 const localeLoaders = {
   en: () => Promise.resolve(en),
@@ -48,12 +53,20 @@ export function getLocale() {
   return activeLocale;
 }
 
+/** @param {string} code */
+function isUiLocale(code) {
+  return UI_LOCALES.includes(String(code || "").toLowerCase());
+}
+
 /** @returns {string} */
 export function resolveLocale() {
-  const code = String(DEMO_LOCALE || "en")
-    .toLowerCase()
-    .split("-")[0];
-  return localeLoaders[code] ? code : "en";
+  try {
+    const stored = sessionStorage.getItem(LOCALE_STORAGE_KEY);
+    if (isUiLocale(stored)) return stored;
+  } catch (_error) {
+    /* sessionStorage unavailable */
+  }
+  return isUiLocale(DEMO_LOCALE) ? DEMO_LOCALE : "de";
 }
 
 /**
@@ -61,13 +74,29 @@ export function resolveLocale() {
  * @param {string} [locale]
  * @param {ParentNode} [root]
  */
-export async function initI18n(locale = "en", root = document) {
-  const code = String(locale || "en").toLowerCase();
-  const loader = localeLoaders[code] || localeLoaders.en;
-  catalog = await loader();
-  activeLocale = localeLoaders[code] ? code : "en";
+export async function initI18n(locale = "de", root = document) {
+  const code = isUiLocale(locale) ? String(locale).toLowerCase() : "de";
+  catalog = await localeLoaders[code]();
+  activeLocale = code;
   document.documentElement.lang = activeLocale;
   applyDomStrings(root);
+}
+
+/**
+ * Switch locale, persist choice for the session, and re-apply DOM strings.
+ * @param {string} locale
+ * @param {ParentNode} [root]
+ * @returns {Promise<string>} Resolved locale code.
+ */
+export async function setLocale(locale, root = document) {
+  const resolved = isUiLocale(locale) ? String(locale).toLowerCase() : resolveLocale();
+  try {
+    sessionStorage.setItem(LOCALE_STORAGE_KEY, resolved);
+  } catch (_error) {
+    /* sessionStorage unavailable */
+  }
+  await initI18n(resolved, root);
+  return resolved;
 }
 
 /**

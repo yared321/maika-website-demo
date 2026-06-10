@@ -14,6 +14,9 @@ export default {
     brandTagline: "KI-Musik für deine Gesundheit",
     demo: "Demo",
     primaryAria: "Hauptnavigation",
+    languageAria: "Sprache wählen",
+    localeDe: "Deutsch",
+    localeEn: "English",
   },
 
   landing: {

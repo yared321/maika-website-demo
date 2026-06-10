@@ -125,6 +125,17 @@ export function syncFaceStepNextGate(dom, state) {
   syncWizardNextButton(dom, state);
 }
 
+/** Re-apply the upload status label after a locale change. */
+export function refreshUploadStatusLabel(dom) {
+  const card = dom.uploadStatusCard;
+  if (!card || !dom.uploadStatusLabel) return;
+  let mode = UPLOAD_STATUS.idle;
+  if (card.classList.contains("is-uploading")) mode = UPLOAD_STATUS.uploading;
+  else if (card.classList.contains("is-success")) mode = UPLOAD_STATUS.success;
+  else if (card.classList.contains("is-error")) mode = UPLOAD_STATUS.error;
+  dom.uploadStatusLabel.textContent = uploadStatusLabel(mode);
+}
+
 /**
  * Stop the upload progress creep timer if active.
  * @param {Record<string, any>} state
