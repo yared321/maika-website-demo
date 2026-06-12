@@ -72,7 +72,7 @@
     <link rel="stylesheet" href="/styles.css?v=20260306-teamfix" />
     <link
       rel="stylesheet"
-      href="/demo/css/demo_landing.css?v=20260601-consent-accent"
+      href="/demo/css/demo_landing.css?v=20260612-genre-scrollbar"
     />
     <link
       rel="stylesheet"
@@ -200,17 +200,48 @@
                 </p>
 
                 <div class="demo-access-card__field">
-                  <label class="demo-access-card__label" for="landing-genre-select" data-i18n="landing.access.genreLabel">
+                  <label
+                    class="demo-access-card__label"
+                    id="landing-genre-label"
+                    for="landing-genre-trigger"
+                    data-i18n="landing.access.genreLabel"
+                  >
                     Music genre
                   </label>
-                  <select
-                    id="landing-genre-select"
-                    class="demo-access-card__select"
-                    data-i18n-aria-label="landing.access.genreAria"
-                    aria-label="Music genre"
-                  >
-                    <option value="" data-i18n="landing.access.genreLoading">Loading genres…</option>
-                  </select>
+                  <div class="demo-genre-picker" id="landing-genre-picker">
+                    <select
+                      id="landing-genre-select"
+                      class="demo-genre-picker__native"
+                      tabindex="-1"
+                      aria-hidden="true"
+                    >
+                      <option value="" data-i18n="landing.access.genreLoading">Loading genres…</option>
+                    </select>
+                    <button
+                      type="button"
+                      id="landing-genre-trigger"
+                      class="demo-genre-picker__trigger"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                      aria-controls="landing-genre-listbox"
+                      aria-labelledby="landing-genre-label"
+                      data-i18n-aria-label="landing.access.genreAria"
+                      aria-label="Music genre"
+                    >
+                      <span class="demo-genre-picker__value" data-i18n="landing.access.genreLoading">
+                        Loading genres…
+                      </span>
+                      <span class="demo-genre-picker__chevron" aria-hidden="true"></span>
+                    </button>
+                    <ul
+                      id="landing-genre-listbox"
+                      class="demo-genre-picker__menu"
+                      role="listbox"
+                      aria-labelledby="landing-genre-label"
+                      tabindex="-1"
+                      hidden
+                    ></ul>
+                  </div>
                 </div>
 
                 <div class="consent-box demo-access-card__consent" id="landing-consent-box">

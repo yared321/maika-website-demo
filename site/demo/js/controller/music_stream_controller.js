@@ -1165,30 +1165,207 @@ export function getAvailableGenres() {
   );
 }
 
+let landingGenrePickerBound = false;
+
+function formatGenreOptionLabel(genre) {
+  const count =
+    Number.isFinite(genre.trackCount) && genre.trackCount > 0
+      ? ` (${genre.trackCount})`
+      : "";
+  return `${genre.label || formatGenreLabel(genre.id)}${count}`;
+}
+
+function getLandingGenrePicker(selectEl) {
+  const root = selectEl?.closest(".demo-genre-picker");
+  if (!root) return null;
+  return {
+    root,
+    select: selectEl,
+    trigger: root.querySelector(".demo-genre-picker__trigger"),
+    valueEl: root.querySelector(".demo-genre-picker__value"),
+    menu: root.querySelector(".demo-genre-picker__menu"),
+  };
+}
+
+function positionLandingGenreMenu(picker) {
+  if (!picker?.trigger || !picker.menu) return;
+  const rect = picker.trigger.getBoundingClientRect();
+  const gap = 4;
+  const maxHeight = Math.min(
+    256,
+    Math.max(120, globalThis.innerHeight - rect.bottom - gap - 12),
+  );
+  picker.menu.style.top = `${rect.bottom + gap}px`;
+  picker.menu.style.left = `${rect.left}px`;
+  picker.menu.style.width = `${rect.width}px`;
+  picker.menu.style.maxHeight = `${maxHeight}px`;
+}
+
+function setLandingGenreMenuOpen(picker, open) {
+  if (!picker?.trigger || !picker.menu) return;
+  picker.trigger.setAttribute("aria-expanded", open ? "true" : "false");
+  picker.menu.hidden = !open;
+  if (open) {
+    positionLandingGenreMenu(picker);
+    const selected = picker.menu.querySelector('[aria-selected="true"]');
+    (selected || picker.menu.querySelector(".demo-genre-picker__option"))?.scrollIntoView({
+      block: "nearest",
+    });
+  }
+}
+
+function syncLandingGenrePickerUi(picker) {
+  if (!picker?.select) return;
+  const select = picker.select;
+  const opt = select.options[select.selectedIndex];
+  if (picker.valueEl) {
+    picker.valueEl.textContent =
+      opt?.textContent || t("landing.access.genreEmpty");
+  }
+  if (picker.menu) {
+    for (const item of picker.menu.querySelectorAll(".demo-genre-picker__option")) {
+      item.setAttribute(
+        "aria-selected",
+        item.dataset.value === select.value ? "true" : "false",
+      );
+    }
+  }
+  if (picker.trigger) picker.trigger.disabled = select.disabled;
+}
+
+function chooseLandingGenreOption(picker, item) {
+  if (!picker?.select || !item) return;
+  picker.select.value = item.dataset.value || "";
+  syncLandingGenrePickerUi(picker);
+  picker.select.dispatchEvent(new Event("change", { bubbles: true }));
+  setLandingGenreMenuOpen(picker, false);
+  picker.trigger?.focus();
+}
+
+function bindLandingGenrePickerOnce(selectEl) {
+  if (!selectEl || landingGenrePickerBound) return;
+  const picker = getLandingGenrePicker(selectEl);
+  if (!picker?.trigger || !picker.menu) return;
+  landingGenrePickerBound = true;
+
+  const onReposition = () => {
+    if (picker.trigger.getAttribute("aria-expanded") === "true") {
+      positionLandingGenreMenu(picker);
+    }
+  };
+  globalThis.addEventListener("resize", onReposition);
+  globalThis.addEventListener("scroll", onReposition, true);
+
+  picker.trigger.addEventListener("click", () => {
+    const open = picker.trigger.getAttribute("aria-expanded") !== "true";
+    setLandingGenreMenuOpen(picker, open);
+  });
+
+  picker.trigger.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setLandingGenreMenuOpen(picker, true);
+      picker.menu.querySelector('[aria-selected="true"]')?.focus();
+    }
+  });
+
+  picker.menu.addEventListener("click", (event) => {
+    const item = event.target.closest(".demo-genre-picker__option");
+    if (!item) return;
+    chooseLandingGenreOption(picker, item);
+  });
+
+  picker.menu.addEventListener("keydown", (event) => {
+    const items = [
+      ...picker.menu.querySelectorAll(".demo-genre-picker__option"),
+    ];
+    const index = items.indexOf(globalThis.document.activeElement);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setLandingGenreMenuOpen(picker, false);
+      picker.trigger.focus();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      items[Math.min(index + 1, items.length - 1)]?.focus();
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (index <= 0) {
+        setLandingGenreMenuOpen(picker, false);
+        picker.trigger.focus();
+        return;
+      }
+      items[index - 1]?.focus();
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      const item = globalThis.document.activeElement;
+      if (!item?.classList.contains("demo-genre-picker__option")) return;
+      chooseLandingGenreOption(picker, item);
+    }
+  });
+
+  globalThis.document.addEventListener("click", (event) => {
+    if (!picker.root.contains(event.target)) {
+      setLandingGenreMenuOpen(picker, false);
+    }
+  });
+}
+
 /** Fills the landing-page genre picker from the genre catalog. */
 export function populateLandingGenreSelect(selectEl) {
   if (!selectEl) return;
+  const picker = getLandingGenrePicker(selectEl);
   const genres = getAvailableGenres();
   selectEl.innerHTML = "";
+  if (picker?.menu) picker.menu.innerHTML = "";
+
   if (!genres.length) {
     const empty = document.createElement("option");
     empty.value = "";
     empty.textContent = t("landing.access.genreEmpty");
     selectEl.appendChild(empty);
     selectEl.disabled = true;
+    syncLandingGenrePickerUi(picker);
+    setLandingGenreMenuOpen(picker, false);
     return;
   }
+
   selectEl.disabled = false;
   for (const genre of genres) {
     const opt = document.createElement("option");
     opt.value = genre.id;
-    const count =
-      Number.isFinite(genre.trackCount) && genre.trackCount > 0
-        ? ` (${genre.trackCount})`
-        : "";
-    opt.textContent = `${genre.label}${count}`;
+    opt.textContent = formatGenreOptionLabel(genre);
     selectEl.appendChild(opt);
+
+    if (picker?.menu) {
+      const item = document.createElement("li");
+      item.className = "demo-genre-picker__option";
+      item.setAttribute("role", "option");
+      item.tabIndex = -1;
+      item.dataset.value = genre.id;
+      item.textContent = opt.textContent;
+      picker.menu.appendChild(item);
+    }
   }
+
+  bindLandingGenrePickerOnce(selectEl);
+  syncLandingGenrePickerUi(picker);
+  setLandingGenreMenuOpen(picker, false);
+}
+
+/** Focus the visible landing genre control (custom picker trigger or native select). */
+export function focusLandingGenreSelect(selectEl) {
+  const picker = getLandingGenrePicker(selectEl);
+  if (picker?.trigger) {
+    picker.trigger.focus();
+    return;
+  }
+  selectEl?.focus();
 }
 
 function findTrackIndicesByGenre(genre) {

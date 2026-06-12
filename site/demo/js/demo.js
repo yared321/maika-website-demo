@@ -6,6 +6,7 @@ import {
   interruptMusicFadeOut,
   autoplayMusicTrackByGenre,
   populateLandingGenreSelect,
+  focusLandingGenreSelect,
   resetMusicDemoSession,
   stopMusicPlayback,
 } from "./controller/music_stream_controller.js";
@@ -187,7 +188,7 @@ function startDemoFromLanding(dom, state, updateStep) {
   const genre = String(dom.landingGenreSelect?.value || "").trim();
   if (!genre) {
     setLandingError(dom, t("errors.genreRequired"));
-    dom.landingGenreSelect?.focus();
+    focusLandingGenreSelect(dom.landingGenreSelect);
     return;
   }
 
