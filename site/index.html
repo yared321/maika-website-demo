@@ -69,7 +69,7 @@
       rel="stylesheet"
       href="/demo/css/face_scanner_fx.css?v=20260505-split-a"
     />
-    <link rel="stylesheet" href="/styles.css?v=20260306-teamfix" />
+    <link rel="stylesheet" href="/styles.css?v=20260612-locale-picker" />
     <link
       rel="stylesheet"
       href="/demo/css/demo_landing.css?v=20260612-genre-scrollbar"
@@ -105,15 +105,42 @@
             >
           </a>
           <div class="locale-switch">
-            <select
-              id="locale-select"
-              class="locale-switch__select"
-              data-i18n-aria-label="nav.languageAria"
-              aria-label="Select language"
-            >
-              <option value="de" data-i18n="nav.localeDe" selected>Deutsch</option>
-              <option value="en" data-i18n="nav.localeEn">English</option>
-            </select>
+            <div class="locale-picker" id="locale-picker">
+              <select
+                id="locale-select"
+                class="locale-picker__native"
+                tabindex="-1"
+                aria-hidden="true"
+              >
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+              </select>
+              <button
+                type="button"
+                id="locale-trigger"
+                class="locale-picker__trigger"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="locale-listbox"
+                aria-labelledby="locale-picker-label"
+                data-i18n-aria-label="nav.languageAria"
+                aria-label="Select language"
+              >
+                <span class="locale-picker__value">Deutsch</span>
+                <span class="locale-picker__chevron" aria-hidden="true"></span>
+              </button>
+              <span id="locale-picker-label" class="visually-hidden" data-i18n="nav.languageAria"
+                >Select language</span
+              >
+              <ul
+                id="locale-listbox"
+                class="locale-picker__menu"
+                role="listbox"
+                aria-labelledby="locale-picker-label"
+                tabindex="-1"
+                hidden
+              ></ul>
+            </div>
           </div>
           <!-- <nav class="nav-links" data-i18n-aria-label="nav.primaryAria" aria-label="Primary">
             <a data-nav-link href="/" data-i18n="nav.demo">Demo</a>

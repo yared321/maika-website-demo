@@ -1,4 +1,5 @@
 import { getLocale, initI18n, resolveLocale, setLocale, t } from "./i18n/index.js";
+import { populateLocalePicker } from "./i18n/locale_picker.js";
 import {
   fetchMusicData,
   MUSIC_PROGRESS_EVENT,
@@ -113,7 +114,7 @@ function initDemoWizard() {
 
 function bindLocaleSwitcher(dom) {
   if (!dom.localeSelect) return;
-  dom.localeSelect.value = getLocale();
+  populateLocalePicker(dom.localeSelect, getLocale());
   dom.localeSelect.addEventListener("change", () => {
     void handleLocaleChange(String(dom.localeSelect?.value || ""));
   });
@@ -130,7 +131,7 @@ function refreshNextButtonLabels(state) {
 async function handleLocaleChange(locale) {
   await setLocale(locale);
   const dom = getDomReferences();
-  if (dom.localeSelect) dom.localeSelect.value = getLocale();
+  populateLocalePicker(dom.localeSelect, getLocale());
 
   if (!wizardRuntime) return;
 
